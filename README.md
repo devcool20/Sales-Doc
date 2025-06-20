@@ -1,9 +1,13 @@
-SalesRLAgent: Real-Time Sales Conversion Prediction & Coaching
+Sales Doc: Real-Time Sales Conversion Prediction & Coaching
 
-(Placeholder image: Replace with an actual screenshot of your running application)
+![image](https://github.com/user-attachments/assets/141bcb29-b356-4101-a5f7-12cb96dbaf19)
+
+![image](https://github.com/user-attachments/assets/a7612bf4-e24f-41e9-8590-4d59956970f3)
+
+
 
 🚀 Overview
-SalesRLAgent is an innovative web application that leverages a hybrid AI approach to provide real-time sales conversation analysis and actionable coaching. It combines a highly optimized Reinforcement Learning (RL) model for rapid conversion probability prediction with a powerful Large Language Model (LLM) for nuanced conversational insights and overall sales advice.
+Sales Doc is an innovative web application that leverages a hybrid AI approach to provide real-time sales conversation analysis and actionable coaching. It combines a highly optimized Reinforcement Learning (RL) model for rapid conversion probability prediction with a powerful Large Language Model (LLM) for nuanced conversational insights and overall sales advice.
 
 This project aims to demonstrate how specialized, high-performance AI models can be integrated with generative LLMs to create intelligent tools for sales teams, improving efficiency and conversion rates.
 
@@ -165,7 +169,13 @@ Review the "Turn-by-Turn Breakdown" for detailed metrics and simulated salespers
 
 Check the "Overall AI Suggestion for this Conversation" box for high-level advice from the LLM (this will appear after a short delay).
 
+![image](https://github.com/user-attachments/assets/853b8fd4-8eb2-4476-b88d-ebd494bed495)
+
+
 LLM Chat Tester:
+
+![image](https://github.com/user-attachments/assets/752de8f2-ca6e-4062-9d76-58b0f7c19b1b)
+
 
 Navigate to the "LLM Chat Tester" section.
 
