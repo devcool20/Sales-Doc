@@ -1,26 +1,130 @@
+/* Custom Fonts - must come first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Import Tailwind CSS v4 */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+html, body {
+  font-family: 'Inter', sans-serif;
+  background-color: #0a0a0a; /* Deep dark background */
+  color: #e0e0e0;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  scroll-behavior: smooth; /* Smooth scrolling for nav links */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Custom CSS for Animations and Premium Elements */
+
+/* Premium Button Styles */
+.btn-premium {
+  @apply relative overflow-hidden bg-gradient-to-r from-blue-500 to-pink-500 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-blue-300;
+  z-index: 10; /* Ensure button content is above pseudo-element */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Pseudo-element for hover gradient effect */
+.btn-premium::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-pink-500 to-blue-500 opacity-0 transition-opacity duration-300 ease-in-out;
+  z-index: -1; /* Place behind button text */
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.btn-premium:hover::before {
+  opacity: 1;
+}
+
+/* Gradient Line Styling */
+.gradient-line {
+  height: 4px;
+  width: 100px;
+  background: linear-gradient(to right, theme('colors.blue.500'), theme('colors.pink.500'));
+  border-radius: 2px;
+  margin: 20px auto;
+  opacity: 0.8;
+  transition: width 0.3s ease-in-out;
+}
+
+/* Section Fade-in Animation */
+.section-fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.section-fade-in.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Icon Glow Effect */
+.glow-icon {
+    filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.7)) drop-shadow(0 0 10px rgba(236, 72, 153, 0.7));
+    transition: transform 0.3s ease-in-out;
+}
+.glow-icon:hover {
+    transform: scale(1.1);
+}
+
+/* Pulsating Gradient for accent elements */
+@keyframes pulseGlow {
+    0% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.4), 0 0 10px rgba(236, 72, 153, 0.4); }
+    50% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.7), 0 0 25px rgba(236, 72, 153, 0.7); }
+    100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.4), 0 0 10px rgba(236, 72, 153, 0.4); }
+}
+
+.pulsate-gradient {
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+/* Specific animations for Hero section elements */
+@keyframes fadeInFromTop {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInFromBottom {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInFromBottom 0.8s ease-out forwards;
+}
+
+.animate-fade-in-up-delay-200 {
+  animation: fadeInFromBottom 0.8s ease-out 0.2s forwards;
+  opacity: 0; /* Ensure it's hidden before animation starts */
+}
+
+.animate-pop-in {
+  animation: popIn 0.6s ease-out 0.4s forwards;
+  opacity: 0; /* Ensure it's hidden before animation starts */
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+    .gradient-line {
+        width: 150px;
+    }
+}
+
+/* Chat Modal Styling */
+#chat-messages-display::-webkit-scrollbar {
+    width: 8px;
+}
+#chat-messages-display::-webkit-scrollbar-track {
+    background: #2a2a2a;
+    border-radius: 10px;
+}
+#chat-messages-display::-webkit-scrollbar-thumb {
+    background-color: #4a4a4a;
+    border-radius: 10px;
+    border: 2px solid #2a2a2a;
+}
+#chat-messages-display {
+    scrollbar-width: thin;
+    scrollbar-color: #4a4a4a #2a2a2a;
 }
