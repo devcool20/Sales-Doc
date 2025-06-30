@@ -1,6 +1,7 @@
 'use client'; // This directive makes this a Client Component
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { SquareStack, Sparkles, Zap } from 'lucide-react'; // Importing icons
 
 // --- Utility Component for Scroll-based Fade In ---
@@ -71,7 +72,7 @@ export default function HomePage() {
       <section id="hero-section" className="min-h-screen flex flex-col items-center justify-center text-center bg-black py-20 px-4 relative overflow-hidden">
         <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 animate-fade-in-up">Boost Your Sales.</h1>
         <p className="text-lg md:text-2xl text-gray-400 mb-10 animate-fade-in-up-delay-200">Smarter conversions start here.</p>
-        <a href="/app" className="btn-premium animate-pop-in">Get Started</a>
+        <Link href="/app" className="btn-premium animate-pop-in">Get Started</Link>
         <div className="gradient-line pulsate-gradient"></div>
       </section>
 
@@ -166,7 +167,7 @@ export default function HomePage() {
             improve their conversion rates and close more deals.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/app" className="btn-premium">Start Free Trial</a>
+            <Link href="/app" className="btn-premium">Start Free Trial</Link>
             <a 
               href="#features-section" 
               className="px-8 py-3 border-2 border-gray-600 text-white font-semibold rounded-full hover:bg-gray-800 transition-all duration-300"

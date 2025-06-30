@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import './globals.css'; // Import global styles
 
 // Define Navbar component (moved here from page.tsx for layout)
@@ -6,12 +7,12 @@ const Navbar: React.FC = () => {
   return (
     <nav className="bg-black p-4 fixed w-full z-50 shadow-lg border-b border-blue-500/50">
       <div className="container mx-auto flex justify-between items-center px-4">
-        <a href="/" className="text-2xl font-bold text-white tracking-wider">SALES<span className="text-pink-500">DOC</span></a>
+        <Link href="/" className="text-2xl font-bold text-white tracking-wider">SALES<span className="text-pink-500">DOC</span></Link>
         <div className="space-x-8 hidden md:flex">
-          <a href="/" className="text-white hover:text-blue-400 transition-colors duration-200">Home</a>
-          <a href="/app" className="text-white hover:text-blue-400 transition-colors duration-200">App</a>
-          <a href="/#features-section" className="text-white hover:text-blue-400 transition-colors duration-200">Features</a>
-          <a href="/#footer-section" className="text-white hover:text-blue-400 transition-colors duration-200">Contact</a>
+          <Link href="/" className="text-white hover:text-blue-400 transition-colors duration-200">Home</Link>
+          <Link href="/app" className="text-white hover:text-blue-400 transition-colors duration-200">App</Link>
+          <Link href="/#features-section" className="text-white hover:text-blue-400 transition-colors duration-200">Features</Link>
+          <Link href="/#footer-section" className="text-white hover:text-blue-400 transition-colors duration-200">Contact</Link>
         </div>
         {/* Mobile Menu Button - for future expansion */}
         <button className="md:hidden text-white focus:outline-none">

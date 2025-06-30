@@ -9,7 +9,7 @@ interface AnalysisResult {
   message: string;
   probability: number;
   status: string;
-  metrics: any; // Define more specific type if metrics structure is known
+  metrics: Record<string, unknown>; // Generic object type instead of any
   llm_per_turn_suggestion: string;
 }
 
@@ -102,13 +102,14 @@ export default function AppPage() {
       const data: { results: AnalysisResult[] } = await response.json();
       setAnalysisResults(data.results); // Update state with analysis results
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error analyzing conversation:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       // Display error message in analysis results area
       setAnalysisResults([{
         turn: 0,
         speaker: "System",
-        message: `Error: ${error.message}. Please ensure your backend is running and accessible.`,
+        message: `Error: ${errorMessage}. Please ensure your backend is running and accessible.`,
         probability: 0,
         status: "error",
         metrics: {},
@@ -155,9 +156,10 @@ export default function AppPage() {
         setLlmAdviceContent('<p class="text-gray-500">No LLM advice returned.</p>');
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting LLM advice:', error);
-      setLlmAdviceContent(`<p class="text-red-500">Error: ${error.message}. Please check backend logs.</p>`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setLlmAdviceContent(`<p class="text-red-500">Error: ${errorMessage}. Please check backend logs.</p>`);
     } finally {
       setIsLoading(false); // Hide general loading spinner
     }
@@ -201,16 +203,17 @@ export default function AppPage() {
       setChatMessages(prev => {
         // Remove the loading message before adding the actual LLM response
         const newMessages = prev.filter(msg => msg !== loadingMsg);
-        return [...newMessages, { type: 'llm', message: data.raw_chat_response || "Sorry, I couldn't process that." }];
+        return [...newMessages, { type: 'llm', message: data.raw_chat_response || "Sorry, I couldn&apos;t process that." }];
       });
       setChatMetricsOutput(data.parsed_json_metrics || null); // Display parsed metrics
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error during chat:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setChatMessages(prev => {
         // Remove loading and add error message to chat
         const newMessages = prev.filter(msg => msg !== loadingMsg);
-        return [...newMessages, { type: 'error', message: `Error: ${error.message}` }];
+        return [...newMessages, { type: 'error', message: `Error: ${errorMessage}` }];
       });
       setChatMetricsOutput(null); // Clear metrics on error
     }
@@ -244,7 +247,7 @@ export default function AppPage() {
                 id="conversation-input"
                 rows={10}
                 className="w-full p-4 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 shadow-md"
-                placeholder="Sales Rep: Hello, how can I help you?&#10;Customer: I'm interested in your product.&#10;Sales Rep: Great! What specific features are you looking for?"
+                placeholder="Sales Rep: Hello, how can I help you?&#10;Customer: I&apos;m interested in your product.&#10;Sales Rep: Great! What specific features are you looking for?"
                 value={conversationInput}
                 onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setConversationInput(e.target.value)}
               ></textarea>
@@ -283,7 +286,7 @@ export default function AppPage() {
                     {analysisResults.map((turn, index) => (
                       <li key={index} className="p-3 bg-gray-800 rounded-lg border border-gray-700 shadow-sm">
                         <strong className="text-pink-400">Turn {turn.turn} ({turn.speaker}):</strong>
-                        <span className="text-gray-200">"{turn.message}"</span><br />
+                        <span className="text-gray-200">&quot;{turn.message}&quot;</span><br />
                         <span className="text-blue-400">Conversion Probability: {(turn.probability * 100).toFixed(2)}%</span><br />
                         <span className="text-sm text-gray-500">Status: {turn.status}</span>
                       </li>
