@@ -1,366 +1,363 @@
-'use client'; // This directive makes this a Client Component
+"use client";
+import { useState } from 'react';
 
-import { useState, useRef, useEffect, ChangeEvent, KeyboardEvent } from 'react';
+const BACKEND_ANALYZE_URL = '/api/proxy_analyze_conversation';
+const BACKEND_GET_LLM_ADVICE_URL = '/api/proxy_llm_advice';
 
-// Define types for API responses for better type safety
-interface AnalysisResult {
-  turn: number;
-  speaker: string;
-  message: string;
-  probability: number;
-  status: string;
-  metrics: Record<string, unknown>; // Generic object type instead of any
-  llm_per_turn_suggestion: string;
+const LLM_ADVICE_PROMPT = `You are Sales AI, an expert sales assistant. Given the following sales conversation, provide at least 4 actionable, numbered or bulleted suggestions or strategies to improve the sales process or outcome. Each point should be concise, highly relevant to the conversation, and focused on sales best practices.`;
+
+// Simulate metrics for a conversation turn, ported from the HTML demo
+function simulateMetricsForTurn(conversationTurns: string[], currentTurnIndex: number) {
+  let metrics: any = {};
+  let suggestion = "No specific suggestion for this turn.";
+  const turnString = conversationTurns[currentTurnIndex];
+  if (!turnString) {
+    return {
+      metrics: {
+        customer_sentiment: 'N/A',
+        customer_engagement: 'N/A',
+        salesperson_effectiveness: 'N/A',
+        objection_raised: 'N/A',
+        next_step_clarity_score: 'N/A',
+        key_topics: []
+      },
+      suggestion: "Error: Turn data unavailable."
+    };
+  }
+  const parts = turnString.split(":");
+  let speaker = parts[0].trim().toLowerCase();
+  const messageContent = (parts.length > 1 ? parts.slice(1).join(":") : parts[0]).toLowerCase();
+  if (speaker.includes('sales')) speaker = 'sales_rep';
+  else if (speaker.includes('customer')) speaker = 'customer';
+  // Sentiment
+  if (/(great|good|yes|agree|promising|useful)/.test(messageContent)) metrics.customer_sentiment = 'positive';
+  else if (/(but|concern|expensive|not sure|problem|struggle|bottleneck|mess)/.test(messageContent)) metrics.customer_sentiment = 'negative';
+  else metrics.customer_sentiment = 'neutral';
+  // Engagement
+  metrics.customer_engagement = Math.max(0, Math.min(1, (0.4 + (currentTurnIndex / (conversationTurns.length - 1 || 1)) * 0.5) + (metrics.customer_sentiment === 'positive' ? 0.1 : 0) - (metrics.customer_sentiment === 'negative' ? 0.05 : 0) + (Math.random() * 0.05 - 0.02)));
+  // Effectiveness
+  metrics.salesperson_effectiveness = Math.min(1.0, 0.6 + (Math.random() * 0.3));
+  // Objection Raised
+  metrics.objection_raised = /(expensive|budget|concern|issue|struggle|bottleneck)/.test(messageContent);
+  // Next Step Clarity
+  if (speaker === 'sales_rep' && /(schedule|demo|proposal|send link|next step|deep-dive)/.test(messageContent)) {
+    metrics.next_step_clarity_score = Math.min(1.0, 0.7 + (Math.random() * 0.2));
+  } else {
+    metrics.next_step_clarity_score = Math.min(1.0, 0.4 + (Math.random() * 0.3));
+  }
+  metrics.next_step_clarity_score = Math.max(0, Math.min(1, metrics.next_step_clarity_score));
+  // Key Topics
+  let topics: string[] = [];
+  if (messageContent.includes('crm')) topics.push('CRM');
+  if (messageContent.includes('automation')) topics.push('Automation');
+  if (/(price|budget|cost)/.test(messageContent)) topics.push('Pricing/Budget');
+  if (/(integration|compatibility)/.test(messageContent)) topics.push('Integration');
+  if (/(demo|trial|solution|software)/.test(messageContent)) topics.push('Product/Solution');
+  if (/(storage|cloud|on-premise)/.test(messageContent)) topics.push('Cloud Storage');
+  if (/(compliance|security|encryption|hipaa)/.test(messageContent)) topics.push('Security/Compliance');
+  if (/(team|workflow|tasks|project)/.test(messageContent)) topics.push('Team/Workflow Management');
+  metrics.key_topics = [...new Set(topics)];
+  // Suggestion for Salesperson
+  if (speaker === 'sales_rep') {
+    if (metrics.objection_raised) suggestion = "Address the customer's objection directly. Re-frame value or offer a specific solution to mitigate their concern.";
+    else if (metrics.customer_sentiment === 'negative' && metrics.customer_engagement < 0.6) suggestion = "Re-engage the customer. Try asking an open-ended question to understand their underlying concerns or needs more deeply.";
+    else if (metrics.next_step_clarity_score < 0.7) suggestion = "Propose a very clear, low-commitment next step to advance the conversation (e.g., 'Would you be open to...?', 'Shall we set up...?').";
+    else if (/(value|roi)/.test(messageContent)) suggestion = "Excellent job focusing on value. Continue to connect product features directly to customer benefits and ROI.";
+    else if (messageContent.includes('solution') && !messageContent.includes('problem')) suggestion = "Continue to present how the solution directly solves their pain points and unique requirements.";
+    else if (messageContent.includes('feature')) suggestion = "Deep-dive into the requested feature, but always tie it back to a customer benefit or problem it solves.";
+    else if (/(demo|trial|proposal)/.test(messageContent)) suggestion = "Great! Confirm next steps and timelines clearly to maintain momentum.";
+    else if (/(scaling|growth)/.test(messageContent)) suggestion = "Emphasize how the solution supports future growth and long-term needs.";
+    else suggestion = "Continue to qualify the lead. Ask probing questions to uncover more needs and move towards the next logical sales stage.";
+  }
+  return { metrics, suggestion };
 }
 
-interface LLMAdviceResponse {
-  points: string[];
-}
-
-interface ChatMetric {
-  summary?: string;
-  sentiment?: string;
-  keywords?: string[];
-}
-
-interface ChatResponse {
-  user_message: string;
-  raw_chat_response: string;
-  raw_json_prompt_response: string;
-  parsed_json_metrics?: ChatMetric;
-  status: string;
-}
+const EXAMPLES = [
+  {
+    title: 'Product Discovery',
+    turns: [
+      'Sales Rep: Hi! What brings you to our platform today?',
+      'Customer: I am looking for a tool to manage my team tasks.',
+      'Sales Rep: Great! Our solution helps teams collaborate efficiently. What features are you most interested in?',
+      'Customer: Mainly task tracking and deadline reminders.'
+    ]
+  },
+  {
+    title: 'Price Objection',
+    turns: [
+      'Sales Rep: Our premium plan offers advanced analytics and support.',
+      'Customer: That sounds good, but it seems expensive.',
+      'Sales Rep: Many clients find the ROI justifies the cost. What budget did you have in mind?',
+      'Customer: We were hoping for something under $100/month.'
+    ]
+  },
+  {
+    title: 'Feature Request',
+    turns: [
+      'Sales Rep: How has your experience been so far?',
+      "Customer: It's good, but I wish there was a mobile app.",
+      "Sales Rep: We're actually launching one soon! Would you like early access?",
+      'Customer: Yes, that would be great.'
+    ]
+  }
+];
 
 export default function AppPage() {
-  // --- API ENDPOINTS (IMPORTANT: UPDATE THIS!) ---
-  // Replace 'YOUR_BACKEND_URL_HERE' with the actual URL of your deployed backend service.
-  // If testing locally with your laptop as server, use 'http://localhost:5000' (or your local port).
-  const BACKEND_BASE_URL = 'https://devcool20-salesdocspace.hf.space'; // <<< IMPORTANT: UPDATE THIS LINE!
+  const [isTurnByTurn, setIsTurnByTurn] = useState(false);
+  const [conversation, setConversation] = useState<{ speaker: string; text: string }[]>([]);
+  const [currentTurn, setCurrentTurn] = useState('');
+  const [currentSpeaker, setCurrentSpeaker] = useState('Sales Rep');
+  const [analysis, setAnalysis] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [llmAdvice, setLlmAdvice] = useState<string[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const BACKEND_ANALYZE_URL = `${BACKEND_BASE_URL}/analyze_conversation`;
-  const BACKEND_GET_LLM_ADVICE_URL = `${BACKEND_BASE_URL}/get_llm_advice`;
-  const BACKEND_CHAT_LLM_URL = `${BACKEND_BASE_URL}/chat_llm`;
-
-  // --- State Management for UI and Data ---
-  const [conversationInput, setConversationInput] = useState<string>('');
-  const [analysisResults, setAnalysisResults] = useState<AnalysisResult[] | null>(null);
-  const [llmAdviceContent, setLlmAdviceContent] = useState<string>(''); // Stores HTML string for LLM advice modal
-  const [chatMessages, setChatMessages] = useState<{ type: 'user' | 'llm' | 'error'; message: string }[]>([]);
-  const [chatInput, setChatInput] = useState<string>('');
-  const [chatMetricsOutput, setChatMetricsOutput] = useState<ChatMetric | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false); // General loading indicator
-  const [showLlmAdviceModal, setShowLlmAdviceModal] = useState<boolean>(false);
-  const [showChatModal, setShowChatModal] = useState<boolean>(false);
-
-  // Ref to store the last analyzed conversation for subsequent LLM calls
-  const currentConversationRef = useRef<string[]>([]); 
-
-  // Ref for auto-scrolling chat messages to the bottom
-  const chatMessagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Effect to scroll chat messages into view whenever they are updated
-  useEffect(() => {
-    chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
-
-  // --- API Call Functions ---
-
-  // Handles sending the conversation for analysis
-  const handleAnalyzeConversation = async () => {
-    const conversationText = conversationInput.trim();
-    if (!conversationText) {
-      setAnalysisResults([]); // Clear previous results, indicate empty input
-      return;
-    }
-
-    // Split conversation into turns, filter out empty lines
-    const turns = conversationText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    if (turns.length === 0) {
-      setAnalysisResults([]);
-      return;
-    }
-    currentConversationRef.current = turns; // Update the ref with the latest conversation
-
-    setIsLoading(true); // Show loading spinner
-    setAnalysisResults(null); // Clear previous results display
-    setChatMetricsOutput(null); // Clear chat metrics output
-
-    try {
-      const response = await fetch(BACKEND_ANALYZE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ conversation: turns }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      const data: { results: AnalysisResult[] } = await response.json();
-      setAnalysisResults(data.results); // Update state with analysis results
-
-    } catch (error: unknown) {
-      console.error('Error analyzing conversation:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      // Display error message in analysis results area
-      setAnalysisResults([{
-        turn: 0,
-        speaker: "System",
-        message: `Error: ${errorMessage}. Please ensure your backend is running and accessible.`,
-        probability: 0,
-        status: "error",
-        metrics: {},
-        llm_per_turn_suggestion: ""
-      }]);
-    } finally {
-      setIsLoading(false); // Hide loading spinner
-    }
+  const handleTurnSubmit = () => {
+    if (!currentTurn.trim()) return;
+    const newTurn = { speaker: currentSpeaker, text: currentTurn };
+    setConversation([...conversation, newTurn]);
+    setCurrentSpeaker(currentSpeaker === 'Sales Rep' ? 'Customer' : 'Sales Rep');
+    setCurrentTurn('');
   };
 
-  // Handles requesting LLM advice based on the analyzed conversation
-  const handleGetLlmAdvice = async () => {
-    if (currentConversationRef.current.length === 0) {
-      setLlmAdviceContent('<p class="text-red-400">Please analyze a conversation first before requesting LLM advice.</p>');
-      setShowLlmAdviceModal(true); // Show modal immediately with error
+  const handleAnalyze = async () => {
+    setIsLoading(true);
+    setError(null);
+    setLlmAdvice(null);
+    let conversationToAnalyze: { speaker: string; text: string }[] = [];
+    if (isTurnByTurn) {
+      conversationToAnalyze = [...conversation];
+      if (currentTurn.trim()) {
+        conversationToAnalyze.push({ speaker: currentSpeaker, text: currentTurn });
+      }
+    } else {
+      // One-go mode: auto-assign speakers if not present
+      const lines = currentTurn.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      conversationToAnalyze = lines.map((line, idx) => {
+        if (/^(sales rep|customer):/i.test(line)) {
+          const [speaker, ...text] = line.split(':');
+          return { speaker: speaker.trim(), text: text.join(':').trim() };
+        } else {
+          const speaker = idx % 2 === 0 ? 'Sales Rep' : 'Customer';
+          return { speaker, text: line };
+        }
+      });
+    }
+    if (conversationToAnalyze.length === 0) {
+      setError('Please enter conversation turns to analyze.');
+      setIsLoading(false);
       return;
     }
-
-    setIsLoading(true); // Show general loading spinner
-    setLlmAdviceContent('<p class="text-blue-400 animate-pulse">Generating LLM advice...</p>'); // Loading message inside modal
-    setShowLlmAdviceModal(true); // Open the advice modal
-
     try {
-      const response = await fetch(BACKEND_GET_LLM_ADVICE_URL, {
+      const res = await fetch(BACKEND_ANALYZE_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ conversation: currentConversationRef.current }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation: conversationToAnalyze.map(t => `${t.speaker}: ${t.text}`) }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.points ? errorData.points.join(' ') : `HTTP error! status: ${response.status}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to analyze conversation');
       }
+      const data = await res.json();
+      console.log('ANALYZE API RESPONSE:', data);
+      setAnalysis(data.results || []);
+      fetchLlmAdvice(conversationToAnalyze.map(t => `${t.speaker}: ${t.text}`));
+    } catch (e: any) {
+      setError(e.message || 'Failed to analyze conversation');
+      setAnalysis([]);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(false);
+  };
 
-      const data: LLMAdviceResponse = await response.json();
-      if (data.points && data.points.length > 0) {
-        // Format advice points into an unordered list HTML string
-        setLlmAdviceContent(
-          `<ul class="list-disc pl-5 space-y-2">${data.points.map(point => `<li class="text-gray-200">${point}</li>`).join('')}</ul>`
-        );
+  const fetchLlmAdvice = async (conversationTurns: string[]) => {
+    try {
+      // Prepend the improved system prompt
+      const res = await fetch(BACKEND_GET_LLM_ADVICE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `${LLM_ADVICE_PROMPT}\n\nConversation:\n${conversationTurns.join('\n')}` }),
+      });
+      if (!res.ok) {
+        setLlmAdvice([`Failed to load AI suggestion: ${res.statusText}`]);
+        return;
+      }
+      const data = await res.json();
+      console.log('LLM ADVICE RESPONSE:', data);
+      if (data && typeof data.reply === 'string') {
+        // Split reply into points (by newlines, numbers, or bullets)
+        let points = data.reply
+          .split(/\n|\d+\.|•|\-/)
+          .map((p: string) => p.trim())
+          .filter((p: string) => p.length > 0);
+        // If less than 4 points, show the whole reply as one point
+        if (points.length < 4) points = [data.reply];
+        setLlmAdvice(points);
+      } else if (data && Array.isArray(data.points)) {
+        setLlmAdvice(data.points);
+      } else if (data && data.points) {
+        setLlmAdvice([data.points]);
       } else {
-        setLlmAdviceContent('<p class="text-gray-500">No LLM advice returned.</p>');
+        setLlmAdvice(['No specific advice generated by LLM.']);
       }
-
-    } catch (error: unknown) {
-      console.error('Error getting LLM advice:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setLlmAdviceContent(`<p class="text-red-500">Error: ${errorMessage}. Please check backend logs.</p>`);
-    } finally {
-      setIsLoading(false); // Hide general loading spinner
+    } catch (e: any) {
+      setLlmAdvice([`Failed to load AI suggestion: ${e.message}`]);
     }
   };
 
-  // Handles opening the LLM chat modal and initializing the conversation
-  const handleChatWithLlm = () => {
-    setChatMessages([{ type: 'llm', message: 'Hello! I am your Sales Assistant. How can I help you today?' }]);
-    setChatInput(''); // Clear chat input field
-    setShowChatModal(true); // Open the chat modal
-  };
-
-  // Handles sending a message within the LLM chat modal
-  const handleSendChatMessage = async () => {
-    const message = chatInput.trim();
-    if (!message) return; // Don't send empty messages
-
-    setChatMessages(prev => [...prev, { type: 'user', message }]); // Add user message to chat history
-    setChatInput(''); // Clear input field
-
-    // Add a temporary loading message for LLM response
-    const loadingMsg: { type: 'user' | 'llm' | 'error'; message: string } = { type: 'llm', message: 'LLM is typing...' };
-    setChatMessages(prev => [...prev, loadingMsg]);
-
-    try {
-      const response = await fetch(BACKEND_CHAT_LLM_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: message }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      const data: ChatResponse = await response.json();
-
-      setChatMessages(prev => {
-        // Remove the loading message before adding the actual LLM response
-        const newMessages = prev.filter(msg => msg !== loadingMsg);
-        return [...newMessages, { type: 'llm', message: data.raw_chat_response || "Sorry, I couldn&apos;t process that." }];
-      });
-      setChatMetricsOutput(data.parsed_json_metrics || null); // Display parsed metrics
-
-    } catch (error: unknown) {
-      console.error('Error during chat:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setChatMessages(prev => {
-        // Remove loading and add error message to chat
-        const newMessages = prev.filter(msg => msg !== loadingMsg);
-        return [...newMessages, { type: 'error', message: `Error: ${errorMessage}` }];
-      });
-      setChatMetricsOutput(null); // Clear metrics on error
+  const handleKeyDown = (e: any) => {
+    if (e.key === 'Enter' && !e.shiftKey && isTurnByTurn) {
+      e.preventDefault();
+      handleTurnSubmit();
     }
   };
 
-  // Handles Enter key press in chat input to send message
-  const handleChatInputKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault(); // Prevent new line in input field
-      handleSendChatMessage();
-    }
+  const handleClear = () => {
+    setConversation([]);
+    setCurrentTurn('');
+    setCurrentSpeaker('Sales Rep');
+    setAnalysis([]);
+    setLlmAdvice(null);
+    setError(null);
+  };
+
+  // Add handler for example click
+  const handleExampleClick = (turns: string[]) => {
+    setCurrentTurn(turns.join('\n'));
+    setConversation([]);
+    setCurrentSpeaker('Sales Rep');
   };
 
   return (
-    <div className="bg-[#0a0a0a] min-h-screen text-gray-200 pt-20">
-      {/* Main Sales Conversation App Section */}
-      <section id="app-section" className="py-20 px-4">
-        <div className="container mx-auto">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 text-center">Sales Conversation Analysis</h1>
-          <p className="text-lg text-gray-400 mb-10 text-center max-w-3xl mx-auto">
-            Analyze your sales conversations with AI-powered insights. Get real-time feedback, 
-            conversion probability scores, and personalized coaching advice.
+    <div className="min-h-screen bg-black text-white overflow-hidden">
+      <div className="absolute inset-0 bg-grid-slate-900/[0.04] bg-[bottom_1px_center] dark:bg-grid-slate-400/[0.05] dark:bg-bottom dark:border-b dark:border-slate-100/5"></div>
+      <div className="relative min-h-screen flex flex-col items-center justify-center p-4 pt-24">
+        <div className="text-center mb-12 z-10">
+          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
+            Sales AI Analyzer
+          </h1>
+          <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
+            Unlock insights from your sales calls. Input your conversations and let our AI provide you with actionable intelligence.
           </p>
-
-          <div className="bg-[#1a1a1a] p-8 rounded-xl shadow-lg border border-gray-800 max-w-6xl mx-auto">
-            <div className="mb-6">
-              <label htmlFor="conversation-input" className="block text-gray-300 text-lg font-semibold mb-3">
-                Enter Sales Conversation (one turn per line):
+        </div>
+        <div className="w-full max-w-4xl z-10">
+          <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
+            <div className="flex items-center justify-center mb-4">
+              <span className="mr-3 text-gray-400">One-go</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={isTurnByTurn} onChange={() => setIsTurnByTurn(!isTurnByTurn)} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
-              <textarea
-                id="conversation-input"
-                rows={10}
-                className="w-full p-4 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 shadow-md"
-                placeholder="Sales Rep: Hello, how can I help you?&#10;Customer: I&apos;m interested in your product.&#10;Sales Rep: Great! What specific features are you looking for?"
-                value={conversationInput}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setConversationInput(e.target.value)}
-              ></textarea>
+              <span className="ml-3 text-gray-400">Turn-by-turn</span>
             </div>
-
-            <div className="flex flex-wrap gap-4 mb-8 justify-center">
-              <button onClick={handleAnalyzeConversation} className="btn-premium flex-1 md:flex-none">
-                Analyze Conversation
-              </button>
-              <button onClick={handleGetLlmAdvice} className="btn-premium flex-1 md:flex-none">
-                Get LLM Advice
-              </button>
-              <button onClick={handleChatWithLlm} className="btn-premium flex-1 md:flex-none">
-                Chat with LLM
-              </button>
-            </div>
-
-            {/* General Loading Indicator */}
-            {isLoading && (
-              <div className="text-center text-blue-400 text-lg mb-8">
-                <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-                <p className="mt-2">Processing...</p>
+            {isTurnByTurn && conversation.length > 0 && (
+              <div className="mb-4 max-h-48 overflow-y-auto p-4 bg-gray-900/50 rounded-lg">
+                {conversation.map((turn, index) => (
+                  <p key={index} className="mb-1"><span className="font-semibold">{turn.speaker}:</span> {turn.text}</p>
+                ))}
               </div>
             )}
-
-            {/* Analysis Results Display Area */}
-            <div className="mt-8">
-              <h3 className="text-2xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Analysis Results:</h3>
-              <div className="bg-[#1a1a1a] p-6 rounded-xl shadow-inner border border-gray-800 text-gray-300 min-h-[100px] overflow-auto">
-                {analysisResults === null ? (
-                  <p className="text-gray-500">No analysis performed yet. Enter a conversation and click "Analyze Conversation".</p>
-                ) : analysisResults.length === 0 ? (
-                  <p className="text-red-400">Please enter a valid conversation to analyze.</p>
-                ) : (
-                  <ul className="list-disc pl-5 space-y-3">
-                    {analysisResults.map((turn, index) => (
-                      <li key={index} className="p-3 bg-gray-800 rounded-lg border border-gray-700 shadow-sm">
-                        <strong className="text-pink-400">Turn {turn.turn} ({turn.speaker}):</strong>
-                        <span className="text-gray-200">&quot;{turn.message}&quot;</span><br />
-                        <span className="text-blue-400">Conversion Probability: {(turn.probability * 100).toFixed(2)}%</span><br />
-                        <span className="text-sm text-gray-500">Status: {turn.status}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              {/* LLM Chat Metrics Display Area */}
-              <h3 className="text-2xl font-bold text-white mb-4 mt-8 border-b border-gray-700 pb-2">LLM Chat Metrics:</h3>
-              <div className="bg-[#1a1a1a] p-6 rounded-xl shadow-inner border border-gray-800 text-gray-300 min-h-[100px] overflow-auto">
-                {chatMetricsOutput === null ? (
-                  <p className="text-gray-500">No chat metrics available yet. Use "Chat with LLM".</p>
-                ) : (
-                  <ul className="list-disc pl-5 space-y-2">
-                    <li className="text-gray-200"><strong className="text-pink-400">Summary:</strong> {chatMetricsOutput.summary || 'N/A'}</li>
-                    <li className="text-gray-200"><strong className="text-pink-400">Sentiment:</strong> {chatMetricsOutput.sentiment || 'N/A'}</li>
-                    <li className="text-gray-200"><strong className="text-pink-400">Keywords:</strong> {chatMetricsOutput.keywords?.join(', ') || 'N/A'}</li>
-                  </ul>
-                )}
+            <textarea
+              className="w-full h-48 bg-gray-900/50 border border-gray-700/50 rounded-lg p-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300"
+              placeholder={isTurnByTurn ? `Enter ${currentSpeaker}'s turn... (Press Enter to submit)` : "Paste the full conversation here (e.g., 'Sales Rep: ...\nCustomer: ...')"}
+              value={currentTurn}
+              onChange={(e) => setCurrentTurn(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <div className="flex flex-col items-center mt-2 mb-2">
+              <span className="text-gray-400 font-medium mb-1 text-xs">Examples:</span>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {EXAMPLES.map((ex, idx) => (
+                  <button
+                    key={ex.title}
+                    onClick={() => handleExampleClick(ex.turns)}
+                    className="text-xs px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full font-semibold transition-all duration-300 shadow-md"
+                    type="button"
+                  >
+                    {ex.title}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* LLM Advice Modal */}
-      {showLlmAdviceModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in-up">
-          <div className="bg-[#1a1a1a] p-8 rounded-xl shadow-2xl border border-gray-700 max-w-2xl w-full">
-            <h3 className="text-2xl font-bold text-white mb-4">LLM Sales Advice</h3>
-            <div
-              id="llm-advice-content"
-              className="text-gray-300 text-md overflow-y-auto max-h-96 mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700"
-              dangerouslySetInnerHTML={{ __html: llmAdviceContent }} // Render HTML from state
-            ></div>
-            <button className="btn-premium w-full" onClick={() => setShowLlmAdviceModal(false)}>Close</button>
-          </div>
-        </div>
-      )}
-
-      {/* Chat with LLM Modal */}
-      {showChatModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in-up">
-          <div className="bg-[#1a1a1a] p-8 rounded-xl shadow-2xl border border-gray-700 max-w-2xl w-full flex flex-col h-[75vh]">
-            <h3 className="text-2xl font-bold text-white mb-4">Chat with LLM</h3>
-            <div id="chat-messages-display" className="flex-grow overflow-y-auto mb-4 p-4 bg-gray-800 rounded-lg border border-gray-700 flex flex-col gap-3">
-              {chatMessages.map((msg, index) => (
-                <div key={index} className={`p-3 rounded-lg shadow-md break-words ${
-                  msg.type === 'user' ? 'bg-blue-600 self-end text-white ml-auto max-w-[80%]' : // User messages (right-aligned)
-                  msg.type === 'llm' ? 'bg-gray-700 self-start text-gray-200 mr-auto max-w-[80%]' : // LLM messages (left-aligned)
-                  'bg-red-700 text-white text-sm' // Error messages
-                }`}>
-                  {msg.message}
-                </div>
-              ))}
-              <div ref={chatMessagesEndRef} /> {/* Empty div for auto-scrolling to */}
+            <div className="text-center mt-6 flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <button 
+                onClick={handleAnalyze}
+                disabled={isLoading || (!currentTurn && conversation.length === 0)}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Analyzing...' : 'Start Analysis'}
+              </button>
+              <button
+                onClick={handleClear}
+                className="bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-lg"
+                type="button"
+              >
+                Clear
+              </button>
             </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                id="chat-input"
-                placeholder="Type your message..."
-                className="flex-grow p-3 rounded-lg bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 shadow-md"
-                value={chatInput}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setChatInput(e.target.value)}
-                onKeyPress={handleChatInputKeyPress}
-              />
-              <button className="btn-premium flex-shrink-0 px-6 py-3" onClick={handleSendChatMessage}>Send</button>
-            </div>
-            <button className="btn-premium w-full mt-4" onClick={() => setShowChatModal(false)}>Close Chat</button>
+            {error && <div className="text-center text-red-400 mt-4">{error}</div>}
           </div>
         </div>
-      )}
+        {analysis && analysis.length > 0 && (
+          <div className="w-full max-w-4xl z-10 mt-8">
+            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
+              <h2 className="text-3xl font-bold text-white mb-6 text-center">Analysis Results</h2>
+              <div className="space-y-6">
+                {(() => {
+                  // Build conversationTurns from analysis data
+                  const conversationTurns = analysis.map(turn => {
+                    // Prefer turn.message, then turn.text, fallback to empty string
+                    return (turn.speaker ? turn.speaker + ': ' : '') + (turn.message || turn.text || '');
+                  });
+                  return analysis.map((turn, idx) => {
+                    // Always simulate metrics using the reconstructed conversationTurns
+                    const { metrics } = simulateMetricsForTurn(conversationTurns, idx);
+                    return (
+                      <div key={turn.turn || idx} className="bg-gray-800/50 p-6 rounded-lg border border-gray-700/50">
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="text-xl font-semibold text-white">Turn {turn.turn} - {turn.speaker}</h3>
+                          <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500">
+                            {typeof turn.probability === 'number' ? `${(turn.probability * 100).toFixed(2)}%` : turn.probability}
+                          </span>
+                        </div>
+                        <p className="text-gray-300 mb-4">{turn.message || turn.text}</p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Sentiment:</span> {metrics.customer_sentiment ?? 'N/A'}</div>
+                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Engagement:</span> {metrics.customer_engagement !== undefined ? `${Math.round(metrics.customer_engagement * 100)}%` : 'N/A'}</div>
+                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Effectiveness:</span> {metrics.salesperson_effectiveness !== undefined ? `${Math.round(metrics.salesperson_effectiveness * 100)}%` : 'N/A'}</div>
+                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Objection Raised:</span> {metrics.objection_raised !== undefined ? (metrics.objection_raised ? 'Yes' : 'No') : 'N/A'}</div>
+                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Next Step Clarity:</span> {metrics.next_step_clarity_score !== undefined ? `${Math.round(metrics.next_step_clarity_score * 100)}%` : 'N/A'}</div>
+                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Key Topics:</span> {Array.isArray(metrics.key_topics) ? metrics.key_topics.join(', ') : 'N/A'}</div>
+                        </div>
+                        {turn.suggestion && (
+                          <div className="bg-blue-900/50 border border-blue-700/50 p-4 rounded-lg">
+                            <h4 className="font-semibold text-blue-300 mb-2">Suggestion for Salesperson:</h4>
+                            <p className="text-blue-200">{turn.suggestion}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+            {llmAdvice && (
+              <div className="mt-8 bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
+                <h4 className="text-2xl font-bold text-white mb-4 text-center">Overall AI Suggestion for this Conversation</h4>
+                <ul className="list-disc list-inside space-y-3 text-lg text-gray-100">
+                  {llmAdvice.map((point, idx) => (
+                    <li key={idx}>{point}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+        <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-0"></div>
+        <div className="absolute top-[-20%] left-[-20%] w-[40%] h-[40%] bg-gradient-to-r from-blue-500/50 to-transparent rounded-full filter blur-3xl opacity-30 animate-pulse"></div>
+        <div className="absolute bottom-[-20%] right-[-20%] w-[40%] h-[40%] bg-gradient-to-l from-pink-500/50 to-transparent rounded-full filter blur-3xl opacity-30 animate-pulse-slow"></div>
+      </div>
     </div>
   );
-} 
+}

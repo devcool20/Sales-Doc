@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { SquareStack, Sparkles, Zap } from 'lucide-react'; // Importing icons
+import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
 
 // --- Utility Component for Scroll-based Fade In ---
 // This component applies the fade-in animation as sections come into view.
@@ -53,18 +54,7 @@ const FadeInSection: React.FC<FadeInSectionProps> = ({ children, id, className }
 };
 
 export default function HomePage() {
-  // --- State Management for Email Capture ---
-  const [email, setEmail] = useState<string>('');
-
-  // Handles email submission
-  const handleEmailSubmit = () => {
-    if (email.trim()) {
-      alert(`Thank you for your interest! Your email "${email}" has been submitted.`);
-      setEmail(''); // Clear input
-    } else {
-      alert('Please enter a valid email address.');
-    }
-  };
+  const [useCaseTab, setUseCaseTab] = useState<'training' | 'ab-testing' | 'assistance'>('training');
 
   return (
     <div className="bg-[#0a0a0a] min-h-screen text-gray-200">
@@ -75,25 +65,6 @@ export default function HomePage() {
         <Link href="/app" className="btn-premium animate-pop-in">Get Started</Link>
         <div className="gradient-line pulsate-gradient"></div>
       </section>
-
-      {/* Email Capture Section */}
-      <FadeInSection id="email-section" className="bg-[#1a1a1a] rounded-xl shadow-lg border border-gray-800">
-        <div className="py-20 px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Enter your email.</h2>
-          <p className="text-md md:text-lg text-gray-400 mb-8">Unlock exclusive offers.</p>
-          <div className="max-w-md mx-auto flex flex-col sm:flex-row gap-4">
-            <input
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex-grow p-4 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 shadow-md"
-            />
-            <button className="btn-premium flex-shrink-0" onClick={handleEmailSubmit}>Submit</button>
-          </div>
-          <div className="gradient-line pulsate-gradient"></div>
-        </div>
-      </FadeInSection>
 
       {/* Features Section */}
       <FadeInSection id="features-section" className="bg-black">
@@ -158,25 +129,184 @@ export default function HomePage() {
         </div>
       </FadeInSection>
 
-      {/* CTA Section */}
-      <FadeInSection id="cta-section" className="bg-black">
-        <div className="container mx-auto text-center">
+      {/* --- NEW HOMEPAGE SECTIONS BELOW --- */}
+      <div className="relative min-h-screen flex flex-col items-center justify-center p-4 pt-24">
+        {/* Performance & Impact Section */}
+        <section className="w-full max-w-6xl z-10 mx-auto mt-12 mb-24">
+          <h2 className="text-4xl font-bold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">Unmatched Performance & Impact</h2>
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 mb-12">
+            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-8 text-center">
+              <div className="text-pink-400 text-4xl font-bold">+43.2%</div>
+              <p className="mt-2 text-gray-200 font-medium">Increase in Conversion Rate</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-8 text-center">
+              <div className="text-pink-400 text-4xl font-bold">-22%</div>
+              <p className="mt-2 text-gray-200 font-medium">Reduction in Sales Cycle</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-8 text-center">
+              <div className="text-pink-400 text-4xl font-bold">96.7%</div>
+              <p className="mt-2 text-gray-200 font-medium">Prediction Accuracy</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-8 text-center">
+              <div className="text-pink-400 text-4xl font-bold">85ms</div>
+              <p className="mt-2 text-gray-200 font-medium">Inference Time</p>
+            </div>
+          </div>
+          <div className="grid gap-8 md:grid-cols-2">
+            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-8">
+              <h3 className="text-lg font-semibold text-white mb-2">Prediction Accuracy vs. Alternatives</h3>
+              <p className="text-sm text-gray-400 mb-4">The model significantly outperforms both commercial systems and LLM-only approaches.</p>
+              <div className="flex items-center justify-center h-48">
+                <span className="text-gray-600/40 italic">[Accuracy Chart Placeholder]</span>
+              </div>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-8">
+              <h3 className="text-lg font-semibold text-white mb-2">Inference Speed Comparison (Latency)</h3>
+              <p className="text-sm text-gray-400 mb-4">Optimized for real-time use, the model is over 40x faster than GPT-4.</p>
+              <div className="flex items-center justify-center h-48">
+                <span className="text-gray-600/40 italic">[Speed Chart Placeholder]</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Architecture Section */}
+        <section className="w-full max-w-6xl z-10 mx-auto mb-24">
+          <h2 className="text-4xl font-bold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">How It Works: A Hybrid AI Approach</h2>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="bg-white/5 border-l-4 border-blue-400 rounded-2xl shadow-lg w-full text-center p-4">
+              <p className="font-semibold text-white">Input: Conversation Turns & Metrics</p>
+            </div>
+            <div className="text-2xl text-gray-500">↓</div>
+            <div className="grid md:grid-cols-2 gap-4 w-full">
+              <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-6">
+                <h4 className="font-bold text-white">1. State Encoder Network</h4>
+                <p className="text-sm text-gray-400 mt-1">Processes conversation data into a rich state representation using embeddings and sales-specific features.</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-6">
+                <h4 className="font-bold text-white">2. Meta-Learning Module</h4>
+                <p className="text-sm text-gray-400 mt-1">Assesses the model's confidence in its own predictions, allowing it to express uncertainty.</p>
+              </div>
+            </div>
+            <div className="text-2xl text-gray-500">↓</div>
+            <div className="grid md:grid-cols-2 gap-4 w-full">
+              <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-6">
+                <h4 className="font-bold text-white">3. Policy Network</h4>
+                <p className="text-sm text-gray-400 mt-1">The core decision-maker. It takes the state representation and estimates the conversion probability.</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-6">
+                <h4 className="font-bold text-white">4. Value Network</h4>
+                <p className="text-sm text-gray-400 mt-1">Estimates the long-term cumulative reward, helping the model understand the future impact of current turns.</p>
+              </div>
+            </div>
+            <div className="text-2xl text-gray-500">↓</div>
+            <div className="bg-white/5 border-l-4 border-blue-400 rounded-2xl shadow-lg w-full text-center p-4">
+              <p className="font-semibold text-white">Output: Probability, Insights & Confidence</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Use Cases Section */}
+        <section className="w-full max-w-6xl z-10 mx-auto mb-24">
+          <h2 className="text-4xl font-bold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">Versatile Applications</h2>
+          <div className="w-full max-w-4xl mx-auto">
+            <div className="flex border-b border-white/10 mb-6">
+              <button onClick={() => setUseCaseTab('training')} className={`flex-1 py-3 px-1 text-center font-semibold border-b-2 transition-all duration-200 ${useCaseTab === 'training' ? 'text-pink-400 border-pink-400' : 'text-gray-400 border-transparent hover:text-white'}`}>Sales Training</button>
+              <button onClick={() => setUseCaseTab('ab-testing')} className={`flex-1 py-3 px-1 text-center font-semibold border-b-2 transition-all duration-200 ${useCaseTab === 'ab-testing' ? 'text-pink-400 border-pink-400' : 'text-gray-400 border-transparent hover:text-white'}`}>A/B Testing</button>
+              <button onClick={() => setUseCaseTab('assistance')} className={`flex-1 py-3 px-1 text-center font-semibold border-b-2 transition-all duration-200 ${useCaseTab === 'assistance' ? 'text-pink-400 border-pink-400' : 'text-gray-400 border-transparent hover:text-white'}`}>Real-time Assistance</button>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-b-2xl shadow-lg p-8">
+              {useCaseTab === 'training' && (
+                <div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Analyze and Improve Sales Techniques</h3>
+                  <p className="text-gray-300 mb-4">Use the model to dissect past conversations. By observing how conversion probability rises and falls, coaches can pinpoint exactly which phrases, questions, and strategies are effective and which ones are not, providing targeted feedback to sales reps.</p>
+                  <div className="bg-gray-900/50 rounded-lg p-4 mb-2">
+                    <p className="text-pink-400 font-semibold mb-2">Example:</p>
+                    <ul className="list-disc list-inside text-gray-200 space-y-1">
+                      <li><span className="font-bold text-blue-300">Customer:</span> I'm comparing different CRM vendors.</li>
+                      <li><span className="font-bold text-blue-300">Sales Rep:</span> Smart approach! What's most important to you?</li>
+                      <li><span className="font-bold text-blue-300">Customer:</span> Integration with existing tools.</li>
+                      <li><span className="font-bold text-blue-300">Sales Rep:</span> We integrate with 200+ tools. Which do you use?</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+              {useCaseTab === 'ab-testing' && (
+                <div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Quantitatively Test Sales Scripts</h3>
+                  <p className="text-gray-300 mb-4">Stop guessing which sales script is better. Run two different approaches through the model to get a quantitative prediction of which one is more likely to lead to a conversion, allowing for data-driven optimization of your sales playbook.</p>
+                  <div className="bg-gray-900/50 rounded-lg p-4 mb-2">
+                    <p className="text-pink-400 font-semibold mb-2">Example:</p>
+                    <ul className="list-disc list-inside text-gray-200 space-y-1">
+                      <li><span className="font-bold text-blue-300">Script A:</span> Customer: I need pricing | Sales Rep: Our Pro plan is $99/month per user.</li>
+                      <li><span className="font-bold text-blue-300">Script B:</span> Customer: I need pricing | Sales Rep: Of course. To get you the most accurate pricing, what's your team size?</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+              {useCaseTab === 'assistance' && (
+                <div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Get Real-time Guidance During Calls</h3>
+                  <p className="text-gray-300 mb-4">Integrate the model into live sales tools to provide reps with real-time suggestions. If customer engagement drops, the model can suggest asking an open-ended question to re-engage them.</p>
+                  <div className="bg-gray-900/50 rounded-lg p-4 mb-2">
+                    <p className="text-pink-400 font-semibold mb-2">Example:</p>
+                    <ul className="list-disc list-inside text-gray-200 space-y-1">
+                      <li><span className="font-bold text-blue-300">Customer:</span> Your solution looks expensive compared to others.</li>
+                      <li><span className="font-bold text-blue-300">Sales Rep:</span> I understand the investment is a consideration. Can we explore the long-term value and ROI it provides?</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* About Section */}
+        <section className="w-full max-w-6xl z-10 mx-auto mb-24">
+          <h2 className="text-4xl font-bold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">About This Tool</h2>
+          <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-8 max-w-3xl mx-auto text-center">
+            <p className="text-lg text-gray-200 mb-2">SalesDoc is a next-generation sales analytics and enablement platform powered by hybrid AI. It helps sales teams unlock actionable insights from conversations, improve conversion rates, and deliver real business impact in real time.</p>
+            <p className="text-gray-400">Built by Devcool20 with a passion for sales, AI, and empowering teams to win more deals.</p>
+          </div>
+        </section>
+
+        {/* CTA Section - moved below About This Tool */}
+        <section id="cta-section" className="bg-black w-full max-w-4xl mx-auto rounded-2xl shadow-lg p-12 mt-12 mb-24 text-center border border-white/10">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Ready to Boost Your Sales?</h2>
           <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
             Join thousands of sales professionals who are already using SalesDoc to 
             improve their conversion rates and close more deals.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/app" className="btn-premium">Start Free Trial</Link>
-            <a 
-              href="#features-section" 
-              className="px-8 py-3 border-2 border-gray-600 text-white font-semibold rounded-full hover:bg-gray-800 transition-all duration-300"
-            >
-              Learn More
-            </a>
-          </div>
-        </div>
-      </FadeInSection>
+          <SignedOut>
+            <SignInButton mode="modal" appearance={{
+              elements: {
+                rootBox: "mx-auto",
+                card: "bg-gray-900/95 border border-white/10 shadow-2xl backdrop-blur-xl rounded-2xl",
+                headerTitle: "text-white text-3xl font-bold",
+                headerSubtitle: "text-gray-300",
+                socialButtonsBlockButton: "bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all duration-300 rounded-xl",
+                formFieldLabel: "text-white font-medium",
+                formFieldInput: "bg-white/5 border border-white/20 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 rounded-xl",
+                formButtonPrimary: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold transition-all duration-300 rounded-xl",
+                footerActionLink: "text-blue-400 hover:text-blue-300 transition-colors",
+                dividerLine: "bg-white/20",
+                dividerText: "text-gray-400",
+                formResendCodeLink: "text-blue-400 hover:text-blue-300 transition-colors",
+                otpCodeFieldInput: "bg-white/5 border border-white/20 text-white focus:border-blue-400 rounded-xl",
+                identityPreviewText: "text-gray-300",
+                identityPreviewEditButton: "text-blue-400 hover:text-blue-300 transition-colors",
+                modalBackdrop: "bg-black/80 backdrop-blur-sm",
+                modalContent: "bg-gray-900/95 border border-white/10 shadow-2xl backdrop-blur-xl rounded-2xl"
+              }
+            }}>
+              <button className="btn-premium">Start Free Trial</button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <Link href="/app" className="btn-premium">Go to Analyzer</Link>
+          </SignedIn>
+        </section>
+      </div>
     </div>
   );
 }

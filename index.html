@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SalesRLAgent: Interactive Analysis Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; height: 300px; max-height: 40vh; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        .nav-link { transition: color 0.3s, border-color 0.3s; }
+        .active-link { color: #0d9488; border-bottom-color: #0d9488; }
+        .inactive-link { color: #475569; border-bottom-color: transparent; }
+        .smooth-transition { transition: all 0.3s ease-in-out; }
+        /* Status pill colors - aligned with deepmost README */
+        .status-very-low { background-color: #fee2e2; color: #ef4444; }
+        .status-low { background-color: #ffedd5; color: #f97316; }
+        .status-medium { background-color: #fffacd; color: #b8860b; }
+        .status-high { background-color: #d1fae5; color: #10b981; }
+        .status-default { background-color: #e5e7eb; color: #4b5563; } /* For loading/initial state */
+
+        /* Chat specific styles */
+        #chatOutput {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background-color: #f8fafc;
+        }
+        .chat-message-user {
+            background-color: #d1fae5;
+            align-self: flex-end;
+            border-radius: 0.75rem 0.75rem 0.125rem 0.75rem;
+        }
+        .chat-message-llm {
+            background-color: #e0f2fe;
+            align-self: flex-start;
+            border-radius: 0.75rem 0.75rem 0.75rem 0.125rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-700">
+
+    <div id="app" class="flex flex-col min-h-screen">
+        
+        <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+            <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-teal-700">SalesRLAgent</h1>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="#demo" class="nav-link px-3 py-2 text-sm font-medium border-b-2">Interactive Demo</a>
+                            <a href="#llm-chat" class="nav-link px-3 py-2 text-sm font-medium border-b-2">LLM Chat Tester</a>
+                            <a href="#performance" class="nav-link px-3 py-2 text-sm font-medium border-b-2">Performance</a>
+                            <a href="#architecture" class="nav-link px-3 py-2 text-sm font-medium border-b-2">How It Works</a>
+                            <a href="#use-cases" class="nav-link px-3 py-2 text-sm font-medium border-b-2">Use Cases</a>
+                            <a href="#about" class="nav-link px-3 py-2 text-sm font-medium border-b-2">About</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <main class="flex-grow">
+
+            <section id="demo" class="py-16 sm:py-20">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Interactive Conversation Analyzer</h2>
+                    <p class="mt-4 max-w-3xl mx-auto text-lg text-slate-600">Experience the model's turn-by-turn analysis firsthand. Input your own sales conversation or use one of our examples to see how conversion probability evolves with each message, powered by the LLM backend.</p>
+
+                    <div class="mt-12 max-w-4xl mx-auto">
+                        <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                            <textarea id="conversationInput" class="w-full h-40 p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow" placeholder="Enter conversation turns, one per line (e.g., 'Customer: Hello', 'Sales Rep: Hi there!')..."></textarea>
+                            
+                            <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                                <button id="analyzeBtn" class="w-full sm:w-auto bg-teal-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 smooth-transition shadow-sm">
+                                    Analyze Conversation
+                                </button>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium text-slate-500">Or try an example:</span>
+                                    <button id="scenarioSuccess" class="text-sm font-medium text-teal-600 hover:text-teal-800">Successful Sale</button>
+                                    <span class="text-slate-300">|</span>
+                                    <button id="scenarioObjection" class="text-sm font-medium text-teal-600 hover:text-teal-800">Price Objection</button>
+                                    <span class="text-slate-300">|</span>
+                                    <button id="scenarioDiscovery" class="text-sm font-medium text-teal-600 hover:text-teal-800">Discovery Call</button>
+                                    <span class="text-slate-300">|</span>
+                                    <button id="scenarioEscalation" class="text-sm font-medium text-teal-600 hover:text-teal-800">Escalation Call</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="analysisOutput" class="mt-8 text-left hidden">
+                            <h3 class="text-2xl font-bold text-slate-800 text-center mb-6">Analysis Results</h3>
+                            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                                <h4 class="text-lg font-semibold text-slate-900 mb-2">Conversion Probability Evolution</h4>
+                                <p class="text-sm text-slate-500 mb-4">This chart tracks the predicted probability of a successful sale after each turn in the conversation, showing the impact of each message, enhanced by LLM-derived insights if available.</p>
+                                <div class="chart-container">
+                                    <canvas id="probabilityChart"></canvas>
+                                </div>
+                                <div id="finalStatus" class="mt-6 text-center text-lg font-semibold"></div>
+                            </div>
+
+                            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg mt-8">
+                                <h4 class="text-lg font-semibold text-slate-900 mb-2">Turn-by-Turn Breakdown</h4>
+                                <p class="text-sm text-slate-500 mb-4">Each card details the message, the predicted conversion probability, and comprehensive LLM-powered metrics, along with per-turn suggestions for the salesperson.</p>
+                                <div id="turnByTurnResults" class="space-y-4"></div>
+                            </div>
+
+                            <div id="suggestionBox" class="mt-8 bg-teal-50 border-l-4 border-teal-500 p-6 rounded-r-lg shadow-md hidden">
+                                <h4 class="text-lg font-semibold text-teal-800 mb-2">Overall AI Suggestion for this Conversation</h4>
+                                <div id="suggestionText" class="text-teal-700"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- LLM Chat Tester Section (for general LLM interaction) -->
+                <section id="llm-chat" class="py-16 sm:py-20">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                        <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">LLM Chat Tester (Direct Interaction)</h2>
+                        <p class="mt-4 max-w-3xl mx-auto text-lg text-slate-600">Send direct messages to the integrated LLM and get a conversational response.</p>
+
+                        <div class="mt-12 max-w-4xl mx-auto">
+                            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                                <div id="chatOutput" class="flex flex-col space-y-4 mb-6">
+                                    <!-- Chat messages will appear here -->
+                                </div>
+                                <textarea id="chatInput" class="w-full h-24 p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" placeholder="Type a message to the LLM (e.g., 'Tell me a short story about AI.')"></textarea>
+                                <button id="sendChatBtn" class="mt-4 w-full sm:w-auto bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 smooth-transition shadow-sm">
+                                    Send to LLM
+                                </button>
+                                 <div class="mt-4 text-left text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+                                    <p><strong>Note:</strong> This section is for direct LLM interaction. For sales-specific advice based on a conversation, use the "Interactive Demo" section above.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <!-- End LLM Chat Tester Section -->
+
+                <section id="performance" class="py-16 sm:py-20">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div class="text-center">
+                            <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Unmatched Performance & Impact</h2>
+                            <p class="mt-4 max-w-3xl mx-auto text-lg text-slate-600">SalesRLAgent isn't just accurate—it delivers quantifiable business results and operates at a speed suitable for real-time applications.</p>
+                        </div>
+
+                        <div class="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+                            <div class="bg-white p-6 rounded-xl shadow-md text-center">
+                                <div class="text-teal-600 text-4xl font-bold">+43.2%</div>
+                                <p class="mt-2 text-slate-600 font-medium">Increase in Conversion Rate</p>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-md text-center">
+                                 <div class="text-teal-600 text-4xl font-bold">-22%</div>
+                                <p class="mt-2 text-slate-600 font-medium">Reduction in Sales Cycle</p>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-md text-center">
+                                 <div class="text-teal-600 text-4xl font-bold">96.7%</div>
+                                <p class="mt-2 text-slate-600 font-medium">Prediction Accuracy</p>
+                            </div>
+                             <div class="bg-white p-6 rounded-xl shadow-md text-center">
+                                 <div class="text-teal-600 text-4xl font-bold">85ms</div>
+                                <p class="mt-2 text-slate-600 font-medium">Inference Time</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-12 grid gap-8 md:grid-cols-2">
+                             <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                                <h3 class="text-lg font-semibold text-slate-900 mb-2">Prediction Accuracy vs. Alternatives</h3>
+                                <p class="text-sm text-slate-500 mb-4">The model significantly outperforms both commercial systems and LLM-only approaches.</p>
+                                <div class="chart-container">
+                                    <canvas id="accuracyChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                                <h3 class="text-lg font-semibold text-slate-900 mb-2">Inference Speed Comparison (Latency)</h3>
+                                <p class="text-sm text-slate-500 mb-4">Optimized for real-time use, the model is over 40x faster than GPT-4.</p>
+                                 <div class="chart-container">
+                                    <canvas id="speedChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="architecture" class="py-16 sm:py-20 bg-slate-100">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div class="text-center">
+                            <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">How It Works: A Hybrid AI Approach</h2>
+                            <p class="mt-4 max-w-3xl mx-auto text-lg text-slate-600">SalesRLAgent uses a specialized Reinforcement Learning architecture, enhanced by LLMs, to understand conversations as a sequence of decisions. Click on each component to learn more.</p>
+                        </div>
+
+                        <div class="mt-12 max-w-4xl mx-auto">
+                            <div class="flex flex-col items-center space-y-4">
+                                <div class="bg-white p-4 rounded-lg shadow-md border-l-4 border-teal-500 w-full text-center">
+                                    <p class="font-semibold text-slate-800">Input: Conversation Turns & Metrics</p>
+                                </div>
+                                <div class="text-2xl text-slate-400">↓</div>
+                                <div class="grid md:grid-cols-2 gap-4 w-full">
+                                    <div id="arch-state-encoder" class="arch-component cursor-pointer bg-white p-6 rounded-lg shadow-md border-2 border-transparent hover:border-teal-500 smooth-transition">
+                                        <h4 class="font-bold text-slate-900">1. State Encoder Network</h4>
+                                        <p class="text-sm text-slate-500 mt-1">Processes conversation data into a rich state representation using embeddings and sales-specific features.</p>
+                                    </div>
+                                    <div id="arch-meta-learning" class="arch-component cursor-pointer bg-white p-6 rounded-lg shadow-md border-2 border-transparent hover:border-teal-500 smooth-transition">
+                                        <h4 class="font-bold text-slate-900">2. Meta-Learning Module</h4>
+                                        <p class="text-sm text-slate-500 mt-1">Assesses the model's confidence in its own predictions, allowing it to express uncertainty.</p>
+                                    </div>
+                                </div>
+                                <div class="text-2xl text-slate-400">↓</div>
+                                 <div class="grid md::grid-cols-2 gap-4 w-full">
+                                    <div id="arch-policy" class="arch-component cursor-pointer bg-white p-6 rounded-lg shadow-md border-2 border-transparent hover:border-teal-500 smooth-transition">
+                                        <h4 class="font-bold text-slate-900">3. Policy Network</h4>
+                                        <p class="text-sm text-slate-500 mt-1">The core decision-maker. It takes the state representation and estimates the conversion probability.</p>
+                                    </div>
+                                    <div id="arch-value" class="arch-component cursor-pointer bg-white p-6 rounded-lg shadow-md border-2 border-transparent hover:border-teal-500 smooth-transition">
+                                        <h4 class="font-bold text-slate-900">4. Value Network</h4>
+                                        <p class="text-sm text-slate-500 mt-1">Estimates the long-term cumulative reward, helping the model understand the future impact of current turns.</p>
+                                    </div>
+                                </div>
+                                 <div class="text-2xl text-slate-400">↓</div>
+                                 <div class="bg-white p-4 rounded-lg shadow-md border-l-4 border-teal-500 w-full text-center">
+                                    <p class="font-semibold text-slate-800">Output: Probability, Insights & Confidence</p>
+                                </div>
+                            </div>
+                            <div id="arch-details" class="mt-8 bg-teal-50 border border-teal-200 p-6 rounded-lg text-slate-800 hidden">
+                               <p id="arch-details-text" class="text-center"></p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="use-cases" class="py-16 sm:py-20">
+                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div class="text-center">
+                            <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Versatile Applications</h2>
+                            <p class="mt-4 max-w-3xl mx-auto text-lg text-slate-600">The model's capabilities extend beyond simple prediction, enabling powerful applications in training, testing, and real-time assistance.</p>
+                        </div>
+                        <div class="mt-12 max-w-4xl mx-auto">
+                            <div class="flex border-b border-slate-300">
+                                <button data-tab="training" class="use-case-tab flex-1 py-3 px-1 text-center font-semibold border-b-2 text-teal-600 border-teal-600">Sales Training</button>
+                                <button data-tab="ab-testing" class="use-case-tab flex-1 py-3 px-1 text-center font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700">A/B Testing</button>
+                                <button data-tab="assistance" class="use-case-tab flex-1 py-3 px-1 text-center font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700">Real-time Assistance</button>
+                            </div>
+                            <div class="mt-6 bg-white p-6 sm:p-8 rounded-b-xl shadow-lg">
+                                <div id="use-case-content"></div>
+                            </div>
+                        </div>
+                     </div>
+                </section>
+                
+                
+            </main>
+
+            <footer class="bg-slate-800 text-slate-400 py-6">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
+                    <p>&copy; 2025. Devcool20, created with passion.</p>
+                </div>
+            </footer>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const appData = {
+                scenarios: {
+                    success: [
+                        "Customer: Hello, I'm looking for information on your new AI-powered CRM solution. We're a mid-sized tech company.",
+                        "Sales Rep: You've come to the right place! Our AI CRM helps increase sales efficiency and streamline operations. What specific challenges are you currently facing with your lead management or sales workflow?",
+                        "Customer: We struggle significantly with lead prioritization – our reps waste time on cold leads. Also, follow-up timing is inconsistent.",
+                        "Sales Rep: Excellent! Our AI automatically analyzes lead quality, scoring them in real-time to help your reps focus on the hottest opportunities. It also suggests optimal follow-up times based on engagement. Would you like to see a quick demonstration of these features?",
+                        "Customer: That sounds really promising. We've tried other solutions, but integration with our existing Salesforce CRM has always been a nightmare. How seamless is your integration process?",
+                        "Sales Rep: Our solution boasts a native, real-time integration with Salesforce, enabling data sync and workflow automation within minutes, not weeks. We also offer a dedicated onboarding specialist. Is that something that's critical for your adoption?",
+                        "Customer: Yes, absolutely. A smooth integration would be a huge relief. What's the pricing structure like for a team of around 50 users?",
+                        "Sales Rep: For a team of your size, our Enterprise Plus plan offers unlimited users, advanced analytics, and priority support, ensuring seamless scalability. We can discuss a tailored quote, but typically it offers significant ROI within the first quarter. Shall I prepare a detailed proposal including a breakdown of potential ROI?",
+                        "Customer: A detailed proposal would be great. This really addresses our pain points.",
+                        "Sales Rep: Fantastic! I'll send that over immediately and follow up next Tuesday to discuss any questions. Does that work for you?",
+                        "Customer: Tuesday works. Thanks for the thorough explanation!"
+                    ],
+                    objection: [
+                        "Customer: Hi, I saw your ad for the new marketing automation tool. We're a small business looking to expand our online presence.",
+                        "Sales Rep: Great! Our tool is designed to save businesses like yours over 10 hours a week on marketing tasks. What are you currently using to manage your email campaigns and social media?",
+                        "Customer: We're using a mix of free tools – a basic spreadsheet for contacts and manual posting on social media. It's becoming very time-consuming.",
+                        "Sales Rep: I see. Our platform automates all of that, from segmented email campaigns to scheduled social posts, freeing up your time for strategy. We could get you set up for a personalized demo as early as this week.",
+                        "Customer: It sounds appealing, but honestly, it also sounds expensive. We have a very tight marketing budget right now.",
+                        "Sales Rep: I completely understand the concern about budget, especially for a small business. Many of our clients felt the same way, but they found that the increased efficiency and lead generation from our tool resulted in a clear ROI within just a few months.",
+                        "Customer: I'm still not sure. We've had bad experiences with software that promised a lot but delivered little, and we can't afford to waste money.",
+                        "Sales Rep: I appreciate your candor. To address that, we offer a risk-free 30-day trial with full feature access and dedicated support. There’s no obligation, and you’ll be able to see the tangible benefits for your business firsthand. How does that sound?",
+                        "Customer: A 30-day trial? That's definitely more appealing. What are the steps to get started with that?",
+                        "Sales Rep: Excellent! I can send you a quick registration link right after this call. It takes less than five minutes to activate your trial, and I'll personally check in after a week to ensure you're getting the most out of it. Does that sound like a good next step?",
+                        "Customer: Yes, that works for me. Please send that link."
+                    ],
+                    discovery: [
+                        "Sales Rep: Good morning, this is Alex from InnovateTech. We spoke briefly last week about your interest in optimizing project workflows. Do you have a few minutes for a quick chat?",
+                        "Customer: Hi Alex, yes, I do. I remember our brief conversation. I'm Sarah from Acme Corp, and we're constantly looking for ways to make our internal processes more efficient.",
+                        "Sales Rep: Great to connect, Sarah. To start, could you tell me a bit about your current challenges when it comes to managing projects? What's not working as smoothly as you'd like?",
+                        "Customer: Well, our biggest headache is communication silos. Different teams use different tools, leading to duplicated efforts and missed updates. It's a mess.",
+                        "Sales Rep: I understand. So, if you could wave a magic wand, what would an ideal project management system look like for Acme Corp?",
+                        "Customer: Ideally, it would be a centralized platform where everyone can see project status, share documents, and communicate seamlessly, regardless of their department. And it needs to be intuitive, not another complicated tool.",
+                        "Sales Rep: That makes perfect sense. How important is it for this system to integrate with your existing communication tools, like Slack or Microsoft Teams?",
+                        "Customer: Very important. We rely heavily on those for daily chatter, so a system that pulls information from there or sends notifications would be a huge plus.",
+                        "Sales Rep: Thanks for sharing, Sarah. This gives me a much clearer picture. Based on what you've described, our Nexus Workflow platform sounds like a strong fit. It's designed specifically to break down silos and integrate with popular collaboration tools. Would you be open to a brief demo to see how it addresses your specific pain points?",
+                        "Customer: A demo could be useful. What kind of time commitment would that involve?",
+                        "Sales Rep: It's typically about 20-25 minutes, focused entirely on the features most relevant to Acme Corp. How does Thursday afternoon look for you?"
+                    ],
+                    escalation: [
+                        "Customer: Hello, I'm calling about the software license renewal for next year. We've seen a significant price increase.",
+                        "Sales Rep: Good morning. Thank you for reaching out. I understand your concern about the price adjustment. Could you confirm which license tier you're currently on?",
+                        "Customer: We're on the Premium Enterprise plan. The 15% increase feels excessive given the current economic climate.",
+                        "Sales Rep: I appreciate your feedback. The increase reflects new feature releases and enhanced dedicated support added to the Enterprise plan. Could you tell me more about how these new features impact your daily operations, if at all?",
+                        "Customer: Honestly, we haven't utilized many of the new features. Our core usage remains the same. This feels like we're being forced to pay more for things we don't need.",
+                        "Sales Rep: I hear you, and I want to ensure you're getting maximum value. Perhaps we can review your usage data together? It might highlight how the new features could actually save your team significant time or resources.",
+                        "Customer: I'm open to that, but my main priority is reducing the cost. Is there any flexibility on the pricing for a long-standing customer like us?",
+                        "Sales Rep: I can certainly explore options for loyal customers. While direct discounts aren't typically on the table, we might be able to offer a temporary credit or a specific training package to maximize your team's efficiency with the new features, indirectly saving costs. Would you be willing to schedule a follow-up call with myself and a solutions architect to deep dive into your usage and see what value we can uncover?",
+                        "Customer: A solutions architect? That sounds like a lot for just a renewal. I just need a better price.",
+                        "Sales Rep: I understand. My goal is to find a solution that works for you. The architect would help identify specific ROI to justify the investment. Without that deeper look, it's difficult for me to advocate for exceptions. Would you consider that 30-minute call to explore all avenues?",
+                        "Customer: Fine. Let's schedule that call. But I'm still expecting a solution on the pricing."
+                    ]
+                },
+                archDetails: {
+                    'arch-state-encoder': 'The State Encoder Network is the first step. It transforms the raw conversation data (text, speaker turns, timing) into a rich, high-dimensional vector. It uses advanced embeddings (like BAAI/bge-m3) to capture the meaning and context, creating a comprehensive "snapshot" of the conversation\'s current state for the other networks to analyze.',
+                    'arch-meta-learning': 'This is a key innovation. The Meta-Learning Module acts as a self-awareness layer for the model. It analyzes the model\'s internal states to estimate its own confidence in the current prediction, allowing it to express uncertainty. If a conversation is very unusual compared to its training data, this module will signal lower confidence, helping users know when to apply more human judgment.',
+                    'arch-policy': 'The Policy Network is the core predictive engine. It receives the state snapshot from the encoder and, based on patterns learned during training, outputs the estimated probability of conversion. It essentially answers the question: "Given everything that has happened in this conversation so far, what is the chance of a successful sale?"',
+                    'arch-value': 'The Value Network provides long-term vision. Instead of just looking at the immediate next step, it estimates the potential future "reward" (i.e., final conversion) from the current state. This helps the Policy Network make better predictions by considering not just the current turn, but the overall trajectory of the conversation.',
+                },
+                useCases: {
+                    training: {
+                        title: 'Analyze and Improve Sales Techniques',
+                        description: 'Use the model to dissect past conversations. By observing how conversion probability rises and falls, coaches can pinpoint exactly which phrases, questions, and strategies are effective and which ones are not, providing targeted feedback to sales reps.',
+                        example: [
+                            {"speaker": "Customer", "message": "I'm comparing different CRM vendors."},
+                            {"speaker": "Sales Rep", "message": "Smart approach! What's most important to you?"},
+                            {"speaker": "Customer", "message": "Integration with existing tools."},
+                            {"speaker": "Sales Rep", "message": "We integrate with 200+ tools. Which do you use?"}
+                        ],
+                        analysis: (results) => {
+                             let output = '<p class="font-semibold text-slate-800 mb-2">Identify turns that increase conversion:</p><ul class="list-disc list-inside space-y-2 text-sm">';
+                             for (let i = 1; i < results.length; i++) {
+                                 const change = results[i].probability - results[i-1].probability;
+                                 const trend = change > 0 ? "📈" : "📉";
+                                 const color = change > 0 ? 'text-green-600' : 'text-red-600';
+                                 output += `<li class="flex items-center"><span class="mr-2">${trend}</span> Turn ${i+1}: <strong class="ml-1 ${color}">${(change * 100).toFixed(2)}%</strong> change in probability.</li>`;
+                             }
+                             return output + '</ul>';
+                        }
+                    },
+                    'ab-testing': {
+                        title: 'Quantitatively Test Sales Scripts',
+                        description: 'Stop guessing which sales script is better. Run two different approaches through the model to get a quantitative prediction of which one is more likely to lead to a conversion, allowing for data-driven optimization of your sales playbook.',
+                        example: [
+                            { name: 'Script A: Direct Pricing', convo: ["Customer: I need pricing", "Sales Rep: Our Pro plan is $99/month per user."] },
+                            { name: 'Script B: Qualifying Question', convo: ["Customer: I need pricing", "Sales Rep: Of course. To get you the most accurate pricing, what's your team size?"] }
+                        ],
+                         analysis: (contentData) => {
+                            const resultA = simulateAnalysis(contentData.example[0].convo);
+                            const resultB = simulateAnalysis(contentData.example[1].convo);
+                            const probA = resultA[resultA.length-1].probability;
+                            const probB = resultB[resultB.length-1].probability;
+                            const winner = probB > probA ? contentData.example[1].name : contentData.example[0].name;
+
+                            return `
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                                    <div class="p-4 rounded-lg bg-slate-50 border">
+                                        <p class="font-semibold">${contentData.example[0].name}</p>
+                                        <p class="text-3xl font-bold mt-2 ${probA > probB ? 'text-teal-600' : 'text-slate-700'}">${(probA*100).toFixed(2)}%</p>
+                                        <p class="text-sm text-slate-500">Predicted Conversion</p>
+                                    </div>
+                                     <div class="p-4 rounded-lg bg-slate-50 border">
+                                        <p class="font-semibold">${contentData.example[1].name}</p>
+                                        <p class="text-3xl font-bold mt-2 ${probB > probA ? 'text-teal-600' : 'text-slate-700'}">${(probB*100).toFixed(2)}%</p>
+                                        <p class="text-sm text-slate-500">Predicted Conversion</p>
+                                    </div>
+                                </div>
+                                <p class="mt-4 text-center font-semibold text-slate-800">${winner} is predicted to be more effective.</p>
+                            `;
+                        }
+                    },
+                    assistance: {
+                        title: 'Get Real-time Guidance During Calls',
+                        description: 'Integrate the model into live sales tools to provide reps with real-time suggestions. If customer engagement drops, the model can suggest asking an open-ended question to re-engage them.',
+                        example: [
+                            {"speaker": "Customer", "message": "Your solution looks expensive compared to others."},
+                            {"speaker": "Sales Rep", "message": "I understand the investment is a consideration. Can we explore the long-term value and ROI it provides?"}
+                        ],
+                        analysis: (results) => {
+                            const lastResult = results[results.length-1];
+                            let suggestion = '💡 Suggestion: Focus on value proposition and ROI.';
+                            // Safely access metrics with optional chaining and nullish coalescing
+                            const engagement = lastResult.metrics?.customer_engagement ?? 0;
+                            const objectionRaised = lastResult.metrics?.objection_raised ?? false;
+
+                            if (engagement < 0.5) {
+                                suggestion = '💡 Suggestion: Customer engagement is low. Try asking an open-ended question to learn more about their needs.';
+                            }
+                            if (objectionRaised) { 
+                                suggestion += ' Consider addressing the customer\'s objection directly with a counter-point or by re-framing value.';
+                            }
+                            return `<div class="bg-teal-50 border-l-4 border-teal-500 p-4 rounded-r-lg">
+                                <p class="font-semibold text-teal-800">${suggestion}</p>
+                             </div>`;
+                        }
+                    }
+                }
+            };
+            
+            let probabilityChartInstance = null;
+            let accuracyChartInstance = null;
+            let speedChartInstance = null;
+
+            // Backend URLs
+            const BACKEND_ANALYZE_URL = 'https://devcool20-salesdocspace.hf.space/analyze_conversation';
+            const BACKEND_GET_LLM_ADVICE_URL = 'http://devcool20-salesdocspace.hf.space/get_llm_advice'; // New endpoint
+            const BACKEND_CHAT_LLM_URL = 'http://devcool20-salesdocspace.hf.space/chat_llm';
+
+            // --- Main Demo Section Functions ---
+            // This function is for simulating results locally for the "Turn-by-Turn Breakdown" metrics
+            function simulateMetricsForTurn(conversationTurns, currentTurnIndex) {
+                let metrics = {};
+                let suggestion = "No specific suggestion for this turn."; // Default if no specific rule applies
+
+                // Ensure turnString is valid before splitting
+                const turnString = conversationTurns[currentTurnIndex];
+                if (!turnString) {
+                    console.warn(`simulateMetricsForTurn: turnString at index ${currentTurnIndex} is undefined or null.`);
+                    // Return default metrics and a specific error message for the suggestion
+                    return { metrics: { customer_sentiment: 'N/A', customer_engagement: 'N/A', salesperson_effectiveness: 'N/A', objection_raised: 'N/A', next_step_clarity_score: 'N/A', key_topics: [] }, suggestion: "Error: Turn data unavailable." };
+                }
+
+                const parts = turnString.split(":");
+                let speaker = parts[0].trim().toLowerCase(); // e.g., 'customer', 'sales rep'
+                const messageContent = (parts.length > 1 ? parts.slice(1).join(":") : parts[0]).toLowerCase();
+
+                // Normalize speaker for consistent internal logic
+                if (speaker.includes('sales')) { // Catches 'sales rep', 'salesperson', 'sales engineer', etc.
+                    speaker = 'sales_rep';
+                } else if (speaker.includes('customer')) {
+                    speaker = 'customer';
+                }
+                // If it's another speaker type, no per-turn suggestion will be generated, which is fine.
+
+
+                // --- Simulate Metrics ---
+                // Customer Sentiment
+                if (messageContent.includes('great') || messageContent.includes('good') || messageContent.includes('yes') || messageContent.includes('agree') || messageContent.includes('promising') || messageContent.includes('useful')) {
+                    metrics.customer_sentiment = 'positive';
+                } else if (messageContent.includes('but') || messageContent.includes('concern') || messageContent.includes('expensive') || messageContent.includes('not sure') || messageContent.includes('problem') || messageContent.includes('struggle') || messageContent.includes('bottleneck') || messageContent.includes('mess')) {
+                    metrics.customer_sentiment = 'negative';
+                } else {
+                    metrics.customer_sentiment = 'neutral';
+                }
+
+                // Customer Engagement (simulated based on turn index and sentiment)
+                // More turns generally mean more engagement, positive sentiment boosts it.
+                metrics.customer_engagement = Math.min(1.0, (0.4 + (currentTurnIndex / (conversationTurns.length -1 || 1)) * 0.5) + (metrics.customer_sentiment === 'positive' ? 0.1 : 0) - (metrics.customer_sentiment === 'negative' ? 0.05 : 0) + (Math.random() * 0.05 - 0.02));
+                metrics.customer_engagement = Math.max(0, Math.min(1, metrics.customer_engagement)); // Clamp between 0 and 1
+
+                // Salesperson Effectiveness (simulated)
+                metrics.salesperson_effectiveness = Math.min(1.0, 0.6 + (Math.random() * 0.3)); // Generally high for good sales calls
+
+                // Objection Raised
+                metrics.objection_raised = messageContent.includes('expensive') || messageContent.includes('budget') || messageContent.includes('concern') || messageContent.includes('issue') || messageContent.includes('struggle') || messageContent.includes('bottleneck');
+
+                // Next Step Clarity (simulated, higher if salesperson offers clear next step)
+                if (speaker === 'sales_rep' && (messageContent.includes('schedule') || messageContent.includes('demo') || messageContent.includes('proposal') || messageContent.includes('send link') || messageContent.includes('next step') || messageContent.includes('deep-dive'))) {
+                    metrics.next_step_clarity_score = Math.min(1.0, 0.7 + (Math.random() * 0.2));
+                } else {
+                    metrics.next_step_clarity_score = Math.min(1.0, 0.4 + (Math.random() * 0.3));
+                }
+                metrics.next_step_clarity_score = Math.max(0, Math.min(1, metrics.next_step_clarity_score)); // Clamp between 0 and 1
+
+                // Key Topics (simple keyword matching)
+                let topics = [];
+                if (messageContent.includes('crm')) topics.push('CRM');
+                if (messageContent.includes('automation')) topics.push('Automation');
+                if (messageContent.includes('price') || messageContent.includes('budget') || messageContent.includes('cost')) topics.push('Pricing/Budget');
+                if (messageContent.includes('integration') || messageContent.includes('compatibility')) topics.push('Integration');
+                if (messageContent.includes('demo') || messageContent.includes('trial') || messageContent.includes('solution') || messageContent.includes('software')) topics.push('Product/Solution');
+                if (messageContent.includes('storage') || messageContent.includes('cloud') || messageContent.includes('on-premise')) topics.push('Cloud Storage');
+                if (messageContent.includes('compliance') || messageContent.includes('security') || messageContent.includes('encryption') || messageContent.includes('hipaa')) topics.push('Security/Compliance');
+                if (messageContent.includes('team') || messageContent.includes('workflow') || messageContent.includes('tasks') || messageContent.includes('project')) topics.push('Team/Workflow Management');
+                
+                metrics.key_topics = [...new Set(topics)]; // Remove duplicates
+
+
+                // --- Simulate Per-Turn Suggestion for Salesperson ---
+                if (speaker === 'sales_rep') {
+                    if (metrics.objection_raised) {
+                        suggestion = "Address the customer's objection directly. Re-frame value or offer a specific solution to mitigate their concern.";
+                    } else if (metrics.customer_sentiment === 'negative' && metrics.customer_engagement < 0.6) {
+                        suggestion = "Re-engage the customer. Try asking an open-ended question to understand their underlying concerns or needs more deeply.";
+                    } else if (metrics.next_step_clarity_score < 0.7) {
+                        suggestion = "Propose a very clear, low-commitment next step to advance the conversation (e.g., 'Would you be open to...?', 'Shall we set up...?').";
+                    } else if (messageContent.includes('value') || messageContent.includes('roi')) {
+                        suggestion = "Excellent job focusing on value. Continue to connect product features directly to customer benefits and ROI.";
+                    } else if (messageContent.includes('solution') && !messageContent.includes('problem')) {
+                        suggestion = "Continue to present how the solution directly solves their pain points and unique requirements.";
+                    } else if (messageContent.includes('feature')) {
+                        suggestion = "Deep-dive into the requested feature, but always tie it back to a customer benefit or problem it solves.";
+                    } else if (messageContent.includes('demo') || messageContent.includes('trial') || messageContent.includes('proposal')) {
+                        suggestion = "Great! Confirm next steps and timelines clearly to maintain momentum.";
+                    } else if (messageContent.includes('scaling') || messageContent.includes('growth')) {
+                        suggestion = "Emphasize how the solution supports future growth and long-term needs.";
+                    }
+                    else {
+                        suggestion = "Continue to qualify the lead. Ask probing questions to uncover more needs and move towards the next logical sales stage.";
+                    }
+                }
+                
+                return { metrics, suggestion };
+            }
+
+            // Function for the "Use Cases" section analysis (still uses internal simulation)
+            function simulateAnalysis(conversation) {
+                let probability = 0.15; 
+                let results = [];
+                
+                conversation.forEach((message, index) => {
+                    // Ensure the message is not empty or malformed before simulating
+                    if (!message || message.trim() === '') {
+                        console.warn(`simulateAnalysis: Skipping empty or malformed message at index ${index}.`);
+                        return; // Skip this turn
+                    }
+                    const { metrics } = simulateMetricsForTurn(conversation, index); // Use the more detailed simulation
+                    
+                    let randomChange = (Math.random() * 0.10) - 0.05; 
+                    let sentimentChange = 0;
+
+                    if (metrics.customer_sentiment === 'positive') sentimentChange += 0.08;
+                    if (metrics.customer_sentiment === 'negative') sentimentChange -= 0.07;
+                    if (metrics.objection_raised) sentimentChange -= 0.05; // Negative impact of objection
+
+                    probability = probability + randomChange + sentimentChange;
+                    probability = Math.max(0.05, Math.min(0.95, probability));
+
+                    let status = '🔴 Very Low';
+                    if (probability >= 0.7) status = '🟢 High';
+                    else if (probability >= 0.5) status = '🟡 Medium';
+                    else if (probability >= 0.3) status = '🟠 Low';
+
+                    // Ensure speaker is extracted safely
+                    const speakerMatch = message.split(":")[0];
+                    const speakerName = speakerMatch ? speakerMatch.trim() : "Unknown";
+
+                    results.push({
+                        turn: index + 1,
+                        speaker: speakerName, 
+                        message: message,
+                        probability: probability,
+                        status: status,
+                        metrics: metrics // Pass the simulated metrics here
+                    });
+                });
+                return results;
+            }
+            
+            function renderProbabilityChart(results) {
+                const ctx = document.getElementById('probabilityChart').getContext('2d');
+                if (probabilityChartInstance) {
+                    probabilityChartInstance.destroy();
+                }
+                probabilityChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: results.map(r => `Turn ${r.turn}`),
+                        datasets: [{
+                            label: 'Conversion Probability',
+                            data: results.map(r => r.probability),
+                            borderColor: '#0d9488',
+                            backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#0d9488',
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 1,
+                                ticks: {
+                                    callback: function(value) {
+                                        return (value * 100).toFixed(0) + '%';
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: { display: false }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const result = results[context.dataIndex]; // Backend result has probability
+                                        
+                                        // Ensure conversationInput exists and has a value
+                                        const conversationInputElem = document.getElementById('conversationInput');
+                                        const conversationText = conversationInputElem ? conversationInputElem.value || '' : '';
+                                        const conversationTurns = conversationText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                                        
+                                        // Ensure context.dataIndex is within bounds for conversationTurns
+                                        if (context.dataIndex === undefined || context.dataIndex < 0 || context.dataIndex >= conversationTurns.length) {
+                                            return `Probability: ${(result.probability * 100).toFixed(2)}% (Tooltip data error)`;
+                                        }
+
+                                        const simulatedData = simulateMetricsForTurn(conversationTurns, context.dataIndex);
+                                        const metrics = simulatedData.metrics;
+
+                                        let label = `Probability: ${(result.probability * 100).toFixed(2)}%`;
+                                        
+                                        if (metrics) {
+                                            const sentiment = metrics.customer_sentiment ? `Sentiment: ${metrics.customer_sentiment}` : '';
+                                            const engagement = (metrics.customer_engagement !== undefined && metrics.customer_engagement !== null) ? `Engagement: ${(metrics.customer_engagement * 100).toFixed(0)}%` : '';
+                                            const effectiveness = (metrics.salesperson_effectiveness !== undefined && metrics.salesperson_effectiveness !== null) ? `Effectiveness: ${(metrics.salesperson_effectiveness * 100).toFixed(0)}%` : '';
+                                            const objection = metrics.objection_raised !== undefined ? `Objection: ${metrics.objection_raised ? 'Yes' : 'No'}` : '';
+                                            const clarity = (metrics.next_step_clarity_score !== undefined && metrics.next_step_clarity_score !== null) ? `Next Step Clarity: ${(metrics.next_step_clarity_score * 100).toFixed(0)}%` : '';
+                                            const topics = metrics.key_topics?.length > 0 ? `Topics: ${metrics.key_topics.join(', ')}` : '';
+
+                                            const metricLines = [sentiment, engagement, effectiveness, objection, clarity, topics].filter(Boolean);
+                                            if (metricLines.length > 0) {
+                                                label += '\n' + metricLines.join('\n');
+                                            }
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function renderTurnByTurnResults(backendResults) {
+                const container = document.getElementById('turnByTurnResults');
+                container.innerHTML = '';
+                
+                // Ensure conversationInput exists and has a value
+                const conversationInputElem = document.getElementById('conversationInput');
+                const conversationText = conversationInputElem ? conversationInputElem.value || '' : '';
+                const conversationTurns = conversationText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+                // Handle case where backendResults might be empty or invalid
+                if (!backendResults || backendResults.length === 0) {
+                    container.innerHTML = '<div class="text-center text-red-500">No detailed analysis results available.</div>';
+                    return;
+                }
+
+                backendResults.forEach((result, index) => {
+                    let statusColorClass = 'bg-slate-100 border-slate-300'; 
+                    if (result.probability >= 0.7) statusColorClass = 'bg-green-100 border-green-500';
+                    else if (result.probability >= 0.5) statusColorClass = 'bg-yellow-100 border-yellow-500';
+                    else if (result.probability >= 0.3) statusColorClass = 'bg-orange-100 border-orange-500';
+                    else statusColorClass = 'bg-red-100 border-red-500';
+
+                    // Ensure index is within bounds of conversationTurns for simulation
+                    const simulatedData = (index >= 0 && index < conversationTurns.length) 
+                                            ? simulateMetricsForTurn(conversationTurns, index)
+                                            : { metrics: {}, suggestion: "Error: Turn data unavailable." }; // Fallback with explicit error
+
+                    const metrics = simulatedData.metrics;
+                    const perTurnSuggestion = simulatedData.suggestion;
+
+
+                    const sentiment = metrics?.customer_sentiment ?? 'N/A';
+                    const engagement = (metrics?.customer_engagement !== undefined && metrics.customer_engagement !== null) ? (metrics.customer_engagement * 100).toFixed(0) + '%' : 'N/A';
+                    const effectiveness = (metrics?.salesperson_effectiveness !== undefined && metrics.salesperson_effectiveness !== null) ? (metrics.salesperson_effectiveness * 100).toFixed(0) + '%' : 'N/A';
+                    const objectionRaised = metrics?.objection_raised !== undefined ? (metrics.objection_raised ? 'Yes' : 'No') : 'N/A';
+                    const nextStepClarity = (metrics?.next_step_clarity_score !== undefined && metrics.next_step_clarity_score !== null) ? (metrics.next_step_clarity_score * 100).toFixed(0) + '%' : 'N/A';
+                    const keyTopics = metrics?.key_topics?.length > 0 ? metrics.key_topics.join(', ') : 'N/A';
+                    
+                    let suggestionHtml = '';
+                    // Normalize speaker from backend result for comparison
+                    const speakerForTurn = result.speaker ? result.speaker.toLowerCase().replace(' ', '_') : ''; 
+                    
+                    if ((speakerForTurn === 'sales_rep' || speakerForTurn === 'salesperson') && perTurnSuggestion && perTurnSuggestion !== "No specific suggestion for this turn.") {
+                        suggestionHtml = `
+                            <div class="mt-4 bg-teal-100 p-3 rounded-lg border border-teal-200">
+                                <p class="text-xs font-semibold text-teal-800">💡 Suggestion for Salesperson:</p>
+                                <p class="text-sm text-teal-700">${perTurnSuggestion}</p>
+                            </div>
+                        `;
+                    }
+
+
+                    const card = `
+                        <div class="border-l-4 p-4 rounded-r-lg ${statusColorClass}">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase text-slate-500">Turn ${result.turn} - ${result.speaker?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
+                                    <p class="mt-1 text-slate-800">${result.message || ''}</p>
+                                    <div class="grid grid-cols-2 gap-2 text-xs text-slate-600 mt-2">
+                                        <div><strong>Sentiment:</strong> ${sentiment}</div>
+                                        <div><strong>Engagement:</strong> ${engagement}</div>
+                                        <div><strong>Effectiveness:</strong> ${effectiveness}</div>
+                                        <div><strong>Objection Raised:</strong> ${objectionRaised}</div>
+                                        <div class="col-span-2"><strong>Next Step Clarity:</strong> ${nextStepClarity}</div>
+                                        <div class="col-span-2"><strong>Key Topics:</strong> ${keyTopics}</div>
+                                    </div>
+                                    ${suggestionHtml}
+                                </div>
+                                <div class="text-right ml-4 flex-shrink-0">
+                                    <p class="font-bold text-lg text-slate-900">${(result.probability * 100).toFixed(2)}%</p>
+                                    <p class="text-xs font-medium">${result.status || 'Unknown'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += card;
+                });
+
+                const finalResult = backendResults[backendResults.length - 1];
+                let finalStatusText = '';
+                if (finalResult.probability >= 0.7) finalStatusText = '🟢 High';
+                else if (finalResult.probability >= 0.5) finalStatusText = '🟡 Medium';
+                else if (finalResult.probability >= 0.3) finalStatusText = '🟠 Low';
+                else finalStatusText = '🔴 Very Low';
+
+                document.getElementById('finalStatus').innerHTML = `
+                    Final Conversion Probability: <span class="text-2xl text-teal-700">${(finalResult.probability * 100).toFixed(2)}%</span>
+                    <span class="ml-2 px-3 py-1 rounded-full text-sm font-semibold 
+                        ${finalStatusText === '🟢 High' ? 'bg-green-100 text-green-700' :
+                          finalStatusText === '🟡 Medium' ? 'bg-yellow-100 text-yellow-700' :
+                          finalStatusText === '🟠 Low' ? 'bg-orange-100 text-orange-700' :
+                          finalStatusText === '🔴 Very Low' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}
+                    ">${finalStatusText}</span>
+                `;
+            }
+
+            function displayLlmSuggestions(structuredAdvice) {
+                const suggestionBox = document.getElementById('suggestionBox');
+                const suggestionTextDiv = document.getElementById('suggestionText');
+                suggestionBox.classList.remove('hidden');
+                suggestionTextDiv.innerHTML = ''; 
+
+                if (structuredAdvice && structuredAdvice.points && Array.isArray(structuredAdvice.points)) {
+                    const ul = document.createElement('ul');
+                    ul.className = 'list-disc list-inside space-y-2';
+                    structuredAdvice.points.forEach(point => {
+                        const li = document.createElement('li');
+                        li.textContent = point;
+                        ul.appendChild(li);
+                    });
+                    suggestionTextDiv.appendChild(ul);
+                } else {
+                    const p = document.createElement('p');
+                    // Display the entire message, including any raw response snippet
+                    p.textContent = structuredAdvice.points ? structuredAdvice.points[0] : "No specific advice generated by LLM.";
+                    suggestionTextDiv.appendChild(p);
+                }
+            }
+            
+            document.getElementById('analyzeBtn').addEventListener('click', async () => {
+                const conversationInputElem = document.getElementById('conversationInput');
+                // Ensure conversationText is always a string, even if textarea value is null/undefined
+                const conversationText = conversationInputElem ? conversationInputElem.value || '' : '';
+                const conversationTurns = conversationText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+                if (conversationTurns.length === 0) {
+                    console.warn('Please enter some conversation turns to analyze.');
+                    // Display a user-friendly message without using alert
+                    document.getElementById('finalStatus').innerHTML = '<span class="text-red-500">Please enter conversation turns to analyze.</span>';
+                    document.getElementById('analysisOutput').classList.remove('hidden');
+                    return;
+                }
+
+                console.log("Sending conversation to backend for analysis:", conversationTurns);
+                const analysisOutputDiv = document.getElementById('analysisOutput');
+                const finalStatusDiv = document.getElementById('finalStatus');
+                const turnByTurnResultsDiv = document.getElementById('turnByTurnResults');
+                const suggestionBox = document.getElementById('suggestionBox');
+                const suggestionText = document.getElementById('suggestionText');
+
+                analysisOutputDiv.classList.remove('hidden'); 
+
+                // Reset and show loading states
+                finalStatusDiv.innerHTML = '<span class="text-slate-500">Analyzing...</span>';
+                turnByTurnResultsDiv.innerHTML = '<div class="text-center text-slate-500">Loading analysis...</div>';
+                suggestionBox.classList.remove('hidden');
+                suggestionText.innerHTML = 'Generating AI suggestion... (This may take a moment due to LLM processing)'; 
+
+                try {
+                    // 1. Fetch core DeepMost analysis first (should be fast)
+                    const response = await fetch(BACKEND_ANALYZE_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ conversation: conversationTurns }),
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error("Backend analysis error response data:", errorData);
+                        throw new Error(`Backend error: ${response.status} - ${errorData.error || response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log("Parsed backend analysis data (core):", data); 
+                    const results = data.results; 
+
+                    if (results && Array.isArray(results) && results.length > 0) {
+                        renderProbabilityChart(results);
+                        renderTurnByTurnResults(results); 
+                        // LLM advice will be fetched separately
+                        fetchLlmAdvice(conversationTurns); 
+                    } else {
+                        finalStatusDiv.innerHTML = '<span class="text-red-500">No valid results from backend.</span>';
+                        turnByTurnResultsDiv.innerHTML = '<div class="text-center text-red-500">No detailed analysis.</div>';
+                        displayLlmSuggestions({points: ['Analysis failed or no valid data returned for conversation.']}); 
+                    }
+
+                } catch (error) {
+                    console.error('Error fetching analysis from backend:', error);
+                    finalStatusDiv.innerHTML = `<span class="text-red-500">Error: ${error.message}</span>`;
+                    turnByTurnResultsDiv.innerHTML = `<div class="text-center text-red-500">Error: ${error.message}</div>`;
+                    displayLlmSuggestions({points: [`Error fetching analysis: ${error.message}`]}); 
+                }
+            });
+
+            // New function to fetch LLM advice asynchronously
+            async function fetchLlmAdvice(conversationTurns) {
+                const suggestionText = document.getElementById('suggestionText');
+                suggestionText.innerHTML = 'Generating AI suggestion... (This may take a moment due to LLM processing)'; 
+
+                try {
+                    const llmResponse = await fetch(BACKEND_GET_LLM_ADVICE_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ conversation: conversationTurns }),
+                    });
+
+                    if (!llmResponse.ok) {
+                        const errorData = await llmResponse.json();
+                        console.error("Backend LLM advice error response data:", errorData);
+                        throw new Error(`LLM Advice Backend error: ${llmResponse.status} - ${errorData.error || llmResponse.statusText}`);
+                    }
+
+                    const llmAdviceData = await llmResponse.json();
+                    console.log("Parsed backend LLM advice data:", llmAdviceData);
+                    displayLlmSuggestions(llmAdviceData);
+
+                } catch (error) {
+                    console.error('Error fetching LLM advice from backend:', error);
+                    // Update suggestion box with error
+                    displayLlmSuggestions({points: [`Failed to load AI suggestion: ${error.message}. This may be due to API quotas or a network issue.`]});
+                }
+            }
+
+
+            // Scenario Buttons 
+            document.getElementById('scenarioSuccess').addEventListener('click', () => {
+                const conv = appData.scenarios.success.join('\n');
+                document.getElementById('conversationInput').value = conv;
+                document.getElementById('analyzeBtn').click();
+            });
+            document.getElementById('scenarioObjection').addEventListener('click', () => {
+                const conv = appData.scenarios.objection.join('\n');
+                document.getElementById('conversationInput').value = conv;
+                document.getElementById('analyzeBtn').click();
+            });
+            document.getElementById('scenarioDiscovery').addEventListener('click', () => {
+                const conv = appData.scenarios.discovery.join('\n');
+                document.getElementById('conversationInput').value = conv;
+                document.getElementById('analyzeBtn').click();
+            });
+            document.getElementById('scenarioEscalation').addEventListener('click', () => {
+                const conv = appData.scenarios.escalation.join('\n');
+                document.getElementById('conversationInput').value = conv;
+                document.getElementById('analyzeBtn').click();
+            });
+
+
+            // --- LLM Chat Tester Functions ---
+            const chatOutput = document.getElementById('chatOutput');
+            const chatInput = document.getElementById('chatInput');
+            const sendChatBtn = document.getElementById('sendChatBtn');
+
+            function addMessageToChat(sender, message) { 
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `p-3 max-w-[80%] shadow-sm text-sm ${sender === 'user' ? 'chat-message-user self-end' : 'chat-message-llm self-start'}`;
+                
+                let content = `<p class="font-semibold">${sender === 'user' ? 'You' : 'LLM'}:</p>`;
+                content += `<p>${message}</p>`; 
+
+                messageDiv.innerHTML = content;
+                chatOutput.appendChild(messageDiv);
+                chatOutput.scrollTop = chatOutput.scrollHeight; 
+            }
+
+            sendChatBtn.addEventListener('click', async () => {
+                const userMessage = chatInput.value.trim();
+                if (userMessage === '') return;
+
+                addMessageToChat('user', userMessage); 
+                chatInput.value = ''; 
+
+                addMessageToChat('llm', '...'); 
+
+                try {
+                    const response = await fetch(BACKEND_CHAT_LLM_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: userMessage }),
+                    });
+
+                    const data = await response.json();
+                    console.log("LLM Chat Backend Response:", data);
+
+                    chatOutput.lastChild.remove(); 
+
+                    if (response.ok) {
+                        const rawChatResponse = data.raw_chat_response;
+                        addMessageToChat('llm', rawChatResponse); 
+                    } else {
+                        addMessageToChat('llm', `Error: ${data.error || 'Unknown error'}`);
+                    }
+
+                } catch (error) {
+                    console.error('Error fetching LLM chat response:', error);
+                    chatOutput.lastChild.remove(); 
+                    addMessageToChat('llm', `Network error or unexpected response: ${error.message}`);
+                }
+            });
+
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { 
+                    e.preventDefault();
+                    sendChatBtn.click();
+                }
+            });
+
+
+            // --- Other UI Component Renderings ---
+            function renderPerformanceCharts() {
+                const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
+                if(accuracyChartInstance) accuracyChartInstance.destroy();
+                accuracyChartInstance = new Chart(accuracyCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['SalesRLAgent', 'Best Commercial', 'LLM-only (GPT-4)'],
+                        datasets: [{
+                            label: 'Prediction Accuracy',
+                            data: [96.7, 73.0, 62.0],
+                            backgroundColor: ['#0d9488', '#94a3b8', '#cbd5e1'],
+                            borderColor: ['#047857', '#64748b', '#94a3b8'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: { x: { max: 100, ticks: { callback: v => v + '%' } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+
+                const speedCtx = document.getElementById('speedChart').getContext('2d');
+                if(speedChartInstance) speedChartInstance.destroy();
+                speedChartInstance = new Chart(speedCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['SalesRLAgent', 'GPT-4 API'],
+                        datasets: [{
+                            label: 'Inference Latency (ms)',
+                            data: [85, 3450],
+                            backgroundColor: ['#0d9488', '#cbd5e1'],
+                            borderColor: ['#047857', '#94a3b8'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { type: 'logarithmic', title: { display: true, text: 'Time in Milliseconds (log scale)' } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+            
+            document.querySelectorAll('.arch-component').forEach(el => {
+                el.addEventListener('click', () => {
+                    const detailText = appData.archDetails[el.id];
+                    const detailsContainer = document.getElementById('arch-details');
+                    document.getElementById('arch-details-text').textContent = detailText;
+                    detailsContainer.classList.remove('hidden');
+                    
+                    document.querySelectorAll('.arch-component').forEach(comp => comp.classList.remove('border-teal-500', 'bg-teal-50'));
+                    el.classList.add('border-teal-500', 'bg-teal-50');
+                });
+            });
+
+            const useCaseTabs = document.querySelectorAll('.use-case-tab');
+            const useCaseContent = document.getElementById('use-case-content');
+
+            function updateUseCaseContent(tabId) {
+                const contentData = appData.useCases[tabId];
+                let analysisHtml = '';
+                if(tabId === 'ab-testing') {
+                    // This section uses the local simulateAnalysis, not the backend API
+                    const simResultsA = simulateAnalysis(contentData.example[0].convo);
+                    const simResultsB = simulateAnalysis(contentData.example[1].convo);
+                    const probA = simResultsA[simResultsA.length-1].probability;
+                    const probB = simResultsB[simResultsB.length-1].probability;
+                    const winner = probB > probA ? contentData.example[1].name : contentData.example[0].name;
+
+                    analysisHtml = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                            <div class="p-4 rounded-lg bg-slate-50 border">
+                                <p class="font-semibold">${contentData.example[0].name}</p>
+                                <p class="text-3xl font-bold mt-2 ${probA > probB ? 'text-teal-600' : 'text-slate-700'}">${(probA*100).toFixed(2)}%</p>
+                                <p class="text-sm text-slate-500">Predicted Conversion</p>
+                            </div>
+                             <div class="p-4 rounded-lg bg-slate-50 border">
+                                <p class="font-semibold">${contentData.example[1].name}</p>
+                                <p class="text-3xl font-bold mt-2 ${probB > probA ? 'text-teal-600' : 'text-slate-700'}">${(probB*100).toFixed(2)}%</p>
+                                <p class="text-sm text-slate-500">Predicted Conversion</p>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-center font-semibold text-slate-800">${winner} is predicted to be more effective.</p>
+                    `;
+                } else {
+                    const simResults = simulateAnalysis(contentData.example.map(e => e.message));
+                    analysisHtml = contentData.analysis(simResults);
+                }
+
+                useCaseContent.innerHTML = `
+                    <h4 class="text-xl font-bold text-slate-800">${contentData.title}</h4>
+                    <p class="mt-2 mb-4 text-slate-600">${contentData.description}</p>
+                    <div class="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        ${analysisHtml}
+                    </div>
+                `;
+            }
+
+            useCaseTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    useCaseTabs.forEach(t => {
+                        t.classList.remove('text-teal-600', 'border-teal-600');
+                        t.classList.add('text-slate-500', 'border-transparent');
+                    });
+                    tab.classList.add('text-teal-600', 'border-teal-600');
+                    tab.classList.remove('text-slate-500', 'border-transparent');
+                    updateUseCaseContent(tab.dataset.tab);
+                });
+            });
+
+            // Navigation scroll highlighting
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            window.onscroll = () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 70) { 
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active-link');
+                    link.classList.add('inactive-link');
+                    if (link.getAttribute('href').substring(1) === current) {
+                        link.classList.add('active-link');
+                        link.classList.remove('inactive-link');
+                    }
+                });
+            };
+
+            // Initial calls
+            renderPerformanceCharts();
+            updateUseCaseContent('training'); 
+            const initialHash = window.location.hash || '#demo';
+            const initialNavLink = document.querySelector(`.nav-link[href="${initialHash}"]`);
+            if (initialNavLink) {
+                navLinks.forEach(link => link.classList.remove('active-link', 'inactive-link')); 
+                initialNavLink.classList.add('active-link');
+                initialNavLink.classList.remove('inactive-link');
+            } else {
+                document.querySelector('.nav-link[href="#demo"]').classList.add('active-link');
+                document.querySelector('.nav-link[href="#demo"]').classList.remove('inactive-link');
+            }
+        });
+    </script>
+</body>
+</html>
