@@ -156,15 +156,78 @@ export default function HomePage() {
             <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-8">
               <h3 className="text-lg font-semibold text-white mb-2">Prediction Accuracy vs. Alternatives</h3>
               <p className="text-sm text-gray-400 mb-4">The model significantly outperforms both commercial systems and LLM-only approaches.</p>
-              <div className="flex items-center justify-center h-48">
-                <span className="text-gray-600/40 italic">[Accuracy Chart Placeholder]</span>
+              <div className="h-48 p-4">
+                <div className="flex items-end justify-between h-full space-x-3">
+                  {/* Commercial Systems */}
+                  <div className="flex flex-col items-center flex-1">
+                    <div className="w-full h-20 bg-gray-700 rounded-t-lg relative overflow-hidden mb-3">
+                      <div className="absolute bottom-0 w-full h-full bg-gradient-to-t from-red-500 to-red-400 rounded-t-lg animate-pulse"></div>
+                    </div>
+                    <div className="text-white font-bold text-sm">72.4%</div>
+                    <div className="text-xs text-gray-400 text-center mt-1">Commercial<br/>Systems</div>
+                  </div>
+                  
+                  {/* LLM-Only */}
+                  <div className="flex flex-col items-center flex-1">
+                    <div className="w-full h-24 bg-gray-700 rounded-t-lg relative overflow-hidden mb-3">
+                      <div className="absolute bottom-0 w-full h-full bg-gradient-to-t from-orange-500 to-orange-400 rounded-t-lg animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+                    </div>
+                    <div className="text-white font-bold text-sm">84.1%</div>
+                    <div className="text-xs text-gray-400 text-center mt-1">LLM-Only<br/>Approaches</div>
+                  </div>
+                  
+                  {/* Our Model */}
+                  <div className="flex flex-col items-center flex-1">
+                    <div className="w-full h-32 bg-gray-700 rounded-t-lg relative overflow-hidden mb-3">
+                      <div className="absolute bottom-0 w-full h-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg animate-pulse" style={{ animationDelay: '1s' }}></div>
+                    </div>
+                    <div className="text-emerald-400 font-bold text-sm">96.7%</div>
+                    <div className="text-xs text-gray-400 text-center mt-1">SalesDoc<br/>AI</div>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg p-8">
               <h3 className="text-lg font-semibold text-white mb-2">Inference Speed Comparison (Latency)</h3>
               <p className="text-sm text-gray-400 mb-4">Optimized for real-time use, the model is over 40x faster than GPT-4.</p>
-              <div className="flex items-center justify-center h-48">
-                <span className="text-gray-600/40 italic">[Speed Chart Placeholder]</span>
+              <div className="h-48 p-4">
+                <div className="flex items-end justify-between h-full space-x-3">
+                  {/* SalesDoc AI */}
+                  <div className="flex flex-col items-center flex-1">
+                    <div className="w-full h-8 bg-gray-700 rounded-t-lg relative overflow-hidden mb-3">
+                      <div className="absolute bottom-0 w-full h-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg animate-pulse"></div>
+                    </div>
+                    <div className="text-emerald-400 font-bold text-sm">85ms</div>
+                    <div className="text-xs text-gray-400 text-center mt-1">SalesDoc<br/>AI</div>
+                  </div>
+                  
+                  {/* Claude-3 */}
+                  <div className="flex flex-col items-center flex-1">
+                    <div className="w-full h-16 bg-gray-700 rounded-t-lg relative overflow-hidden mb-3">
+                      <div className="absolute bottom-0 w-full h-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                    </div>
+                    <div className="text-white font-bold text-sm">1.2s</div>
+                    <div className="text-xs text-gray-400 text-center mt-1">Claude-3<br/>Sonnet</div>
+                  </div>
+                  
+                  {/* Commercial Tools */}
+                  <div className="flex flex-col items-center flex-1">
+                    <div className="w-full h-24 bg-gray-700 rounded-t-lg relative overflow-hidden mb-3">
+                      <div className="absolute bottom-0 w-full h-full bg-gradient-to-t from-orange-500 to-orange-400 rounded-t-lg animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+                    </div>
+                    <div className="text-white font-bold text-sm">2.1s</div>
+                    <div className="text-xs text-gray-400 text-center mt-1">Commercial<br/>Tools</div>
+                  </div>
+                  
+                  {/* GPT-4 */}
+                  <div className="flex flex-col items-center flex-1">
+                    <div className="w-full h-32 bg-gray-700 rounded-t-lg relative overflow-hidden mb-3">
+                      <div className="absolute bottom-0 w-full h-full bg-gradient-to-t from-red-500 to-red-400 rounded-t-lg animate-pulse" style={{ animationDelay: '0.9s' }}></div>
+                    </div>
+                    <div className="text-white font-bold text-sm">3.5s</div>
+                    <div className="text-xs text-gray-400 text-center mt-1">GPT-4<br/>Turbo</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

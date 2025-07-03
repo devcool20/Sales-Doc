@@ -1,5 +1,4 @@
 'use client';
-import type { Metadata } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ClerkProvider, SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/nextjs';
@@ -59,7 +58,7 @@ const Navbar: React.FC = () => {
           </SignedIn>
           <SignedOut>
             <SignInButton>
-              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+              <button className="px-6 py-2 bg-white/5 border border-white/10 backdrop-blur-xl text-white hover:bg-white/10 hover:border-white/20 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg font-medium">
                 Sign In
               </button>
             </SignInButton>
@@ -100,7 +99,7 @@ const Footer: React.FC = () => {
                 </ul>
             </div>
         </div>
-        <p className="mt-8">&copy; 2025 SALESDOC. All rights reserved.</p>
+        <p className="mt-8">&copy; 2025 Built with passion by <a href="https://www.linkedin.com/in/divyanshu-sharma-b9b534113/" className="text-blue-400 hover:text-blue-300 transition-colors">Divyanshu Sharma</a>. All rights reserved.</p>
     </footer>
   );
 };
@@ -117,23 +116,130 @@ export default function RootLayout({
   return (
     <ClerkProvider
       appearance={{
+        baseTheme: undefined,
+        variables: {
+          colorPrimary: "#3b82f6",
+          colorBackground: "#0a0a0a",
+          colorInputBackground: "rgba(255, 255, 255, 0.05)",
+          colorInputText: "#ffffff",
+          colorText: "#ffffff",
+          colorTextSecondary: "#9ca3af",
+          colorTextOnPrimaryBackground: "#ffffff",
+          colorShimmer: "rgba(255, 255, 255, 0.1)",
+          colorNeutral: "#374151",
+          borderRadius: "12px",
+          fontFamily: "inherit"
+        },
         elements: {
-          formButtonPrimary: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold transition-all duration-300 rounded-xl",
-          card: "bg-gray-900/95 border border-white/10 shadow-2xl backdrop-blur-xl rounded-2xl",
-          headerTitle: "text-white text-3xl font-bold",
-          headerSubtitle: "text-gray-300",
-          socialButtonsBlockButton: "bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all duration-300 rounded-xl",
-          formFieldLabel: "text-white font-medium",
-          formFieldInput: "bg-white/5 border border-white/20 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 rounded-xl",
-          footerActionLink: "text-blue-400 hover:text-blue-300 transition-colors",
+          // Root container
+          rootBox: "font-sans",
+          
+          // Card styling
+          card: "bg-black/90 border border-white/10 shadow-2xl backdrop-blur-xl rounded-2xl overflow-hidden",
+          cardBox: "bg-black/90 border border-white/10 shadow-2xl backdrop-blur-xl rounded-2xl",
+          
+          // Header
+          headerTitle: "text-white text-2xl font-bold mb-2",
+          headerSubtitle: "text-gray-300 text-sm",
+          
+          // Form elements
+          formButtonPrimary: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg border-0",
+          formButtonSecondary: "bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-white/20 rounded-xl transition-all duration-300 font-medium",
+          
+          // Input fields
+          formFieldLabel: "text-white font-medium text-sm mb-2",
+          formFieldInput: "bg-white/5 border border-white/20 text-white placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 rounded-xl py-3 px-4 transition-all duration-200",
+          formFieldInputShowPasswordButton: "text-gray-400 hover:text-white",
+          
+          // Social buttons
+          socialButtonsBlockButton: "bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300 rounded-xl font-medium",
+          socialButtonsBlockButtonText: "text-white font-medium",
+          socialButtonsBlockButtonArrow: "text-gray-400",
+          
+          // Links and actions
+          footerActionLink: "text-blue-400 hover:text-blue-300 transition-colors font-medium",
+          formResendCodeLink: "text-blue-400 hover:text-blue-300 transition-colors font-medium",
+          
+          // Dividers
           dividerLine: "bg-white/20",
-          dividerText: "text-gray-400",
-          formResendCodeLink: "text-blue-400 hover:text-blue-300 transition-colors",
-          otpCodeFieldInput: "bg-white/5 border border-white/20 text-white focus:border-blue-400 rounded-xl",
+          dividerText: "text-gray-400 text-sm",
+          
+          // OTP and verification
+          otpCodeFieldInput: "bg-white/5 border border-white/20 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 rounded-xl text-center font-mono",
+          
+          // Identity preview
           identityPreviewText: "text-gray-300",
           identityPreviewEditButton: "text-blue-400 hover:text-blue-300 transition-colors",
+          
+          // Modal
           modalBackdrop: "bg-black/80 backdrop-blur-sm",
-          modalContent: "bg-gray-900/95 border border-white/10 shadow-2xl backdrop-blur-xl rounded-2xl"
+          modalContent: "bg-black/90 border border-white/10 shadow-2xl backdrop-blur-xl rounded-2xl max-w-md mx-auto",
+          
+          // Internal card
+          main: "bg-transparent",
+          
+          // Footer
+          footer: "bg-transparent",
+          footerActionText: "text-gray-400",
+          
+          // Avatar and profile
+          avatarBox: "border-2 border-white/20 rounded-full",
+          
+          // Form field row
+          formFieldRow: "space-y-1",
+          
+          // Alert and errors
+          alertText: "text-red-400",
+          formFieldWarningText: "text-yellow-400",
+          formFieldSuccessText: "text-green-400",
+          formFieldErrorText: "text-red-400",
+          
+          // Dropdown and selects
+          selectButton: "bg-white/5 border border-white/20 text-white hover:bg-white/10 rounded-xl",
+          selectSearchInput: "bg-white/5 border border-white/20 text-white placeholder-gray-400 rounded-xl",
+          selectOption: "text-white hover:bg-white/10",
+          
+          // Loading spinner
+          spinner: "text-blue-400",
+          
+          // Profile page specific
+          profilePage: "bg-transparent",
+          profileSection: "bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-xl",
+          profileSectionTitle: "text-white font-semibold text-lg",
+          profileSectionContent: "text-gray-300",
+          
+          // Breadcrumbs
+          breadcrumbsItem: "text-gray-400",
+          breadcrumbsItemCurrent: "text-white",
+          breadcrumbsItemDivider: "text-gray-600",
+          
+          // Menu and popover
+          userButtonPopoverCard: "bg-black/90 border border-white/10 shadow-2xl backdrop-blur-xl rounded-xl",
+          userButtonPopoverActionButton: "text-white hover:bg-white/10 transition-colors rounded-lg",
+          userButtonPopoverActionButtonText: "text-white",
+          userButtonPopoverActionButtonIcon: "text-gray-400",
+          userButtonPopoverFooter: "border-t border-white/10 pt-2",
+          
+          // Page backgrounds
+          pageScrollBox: "bg-transparent",
+          
+          // Form field hints
+          formFieldHintText: "text-gray-400 text-sm",
+          
+          // Phone input
+          phoneInputBox: "bg-white/5 border border-white/20 rounded-xl",
+          
+          // Navbar (if using Clerk's navbar)
+          navbar: "bg-black/90 border-b border-white/10 backdrop-blur-xl",
+          navbarButton: "text-white hover:bg-white/10 rounded-lg transition-colors",
+          
+          // Organization switcher
+          organizationSwitcherTrigger: "bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded-xl transition-all duration-300",
+          organizationSwitcherPopoverCard: "bg-black/90 border border-white/10 shadow-2xl backdrop-blur-xl rounded-xl",
+          
+          // File upload
+          fileDropAreaBox: "border-2 border-dashed border-white/20 bg-white/5 rounded-xl",
+          fileDropAreaButtonPrimary: "bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium",
         }
       }}
     >

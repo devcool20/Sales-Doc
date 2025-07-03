@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
 
 const BACKEND_ANALYZE_URL = '/api/proxy_analyze_conversation';
 const BACKEND_GET_LLM_ADVICE_URL = '/api/proxy_llm_advice';
@@ -229,18 +230,16 @@ export default function AppPage() {
     setCurrentSpeaker('Sales Rep');
   };
 
-  return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
-      <div className="absolute inset-0 bg-grid-slate-900/[0.04] bg-[bottom_1px_center] dark:bg-grid-slate-400/[0.05] dark:bg-bottom dark:border-b dark:border-slate-100/5"></div>
-      <div className="relative min-h-screen flex flex-col items-center justify-center p-4 pt-24">
-        <div className="text-center mb-12 z-10">
-          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
-            Sales AI Analyzer
-          </h1>
-          <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
-            Unlock insights from your sales calls. Input your conversations and let our AI provide you with actionable intelligence.
-          </p>
-        </div>
+  const AnalyzerInterface = () => (
+    <>
+      <div className="text-center mb-12 z-10">
+        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
+          Sales AI Analyzer
+        </h1>
+        <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
+          Unlock insights from your sales calls. Input your conversations and let our AI provide you with actionable intelligence.
+        </p>
+      </div>
         <div className="w-full max-w-4xl z-10">
           <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
             <div className="flex items-center justify-center mb-4">
@@ -354,6 +353,69 @@ export default function AppPage() {
             )}
           </div>
         )}
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-black text-white overflow-hidden">
+      <div className="absolute inset-0 bg-grid-slate-900/[0.04] bg-[bottom_1px_center] dark:bg-grid-slate-400/[0.05] dark:bg-bottom dark:border-b dark:border-slate-100/5"></div>
+      <div className="relative min-h-screen flex flex-col items-center justify-center p-4 pt-24">
+        <SignedIn>
+          <AnalyzerInterface />
+        </SignedIn>
+        
+        <SignedOut>
+          <div className="text-center mb-12 z-10">
+            <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
+              Sales AI Analyzer
+            </h1>
+            <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-8">
+              Unlock insights from your sales calls. Input your conversations and let our AI provide you with actionable intelligence.
+            </p>
+          </div>
+          
+          <div className="w-full max-w-4xl z-10">
+            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-12 text-center">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold mb-4 text-white">🔍 Advanced Sales Analysis</h2>
+                <p className="text-gray-300 text-lg mb-6">
+                  Get deep insights into your sales conversations with AI-powered analysis.
+                </p>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6 mb-8">
+                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold mb-3 text-white">📊 Conversation Metrics</h3>
+                  <ul className="text-gray-300 space-y-2 text-left">
+                    <li>• Customer sentiment analysis</li>
+                    <li>• Engagement level tracking</li>
+                    <li>• Salesperson effectiveness scores</li>
+                    <li>• Objection detection</li>
+                    <li>• Next step clarity assessment</li>
+                  </ul>
+                </div>
+                
+                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold mb-3 text-white">🤖 AI-Powered Insights</h3>
+                  <ul className="text-gray-300 space-y-2 text-left">
+                    <li>• Turn-by-turn conversation breakdown</li>
+                    <li>• Key topic extraction</li>
+                    <li>• Actionable improvement suggestions</li>
+                    <li>• Sales strategy recommendations</li>
+                    <li>• Real-time coaching advice</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <SignInButton mode="modal">
+                <button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg text-lg">
+                  Sign In to Start Analyzing
+                </button>
+              </SignInButton>
+            </div>
+          </div>
+        </SignedOut>
+        
         <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-0"></div>
         <div className="absolute top-[-20%] left-[-20%] w-[40%] h-[40%] bg-gradient-to-r from-blue-500/50 to-transparent rounded-full filter blur-3xl opacity-30 animate-pulse"></div>
         <div className="absolute bottom-[-20%] right-[-20%] w-[40%] h-[40%] bg-gradient-to-l from-pink-500/50 to-transparent rounded-full filter blur-3xl opacity-30 animate-pulse-slow"></div>
