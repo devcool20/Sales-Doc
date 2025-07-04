@@ -119,6 +119,21 @@ function AnalyzerInterface({
   handleAnalyze,
   handleClear,
   handleExampleClick,
+}: {
+  isTurnByTurn: boolean;
+  conversation: { speaker: string; text: string }[];
+  currentTurn: string;
+  currentSpeaker: string;
+  analysis: any[];
+  llmAdvice: string[] | null;
+  isLoading: boolean;
+  error: string | null;
+  setIsTurnByTurn: (value: boolean) => void;
+  setCurrentTurn: (value: string) => void;
+  handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  handleAnalyze: () => void;
+  handleClear: () => void;
+  handleExampleClick: (turns: string[]) => void;
 }) {
   return (
     <>

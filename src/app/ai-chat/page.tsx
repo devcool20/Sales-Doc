@@ -22,7 +22,7 @@ function ChatInterface({
   setInput: (val: string) => void;
   isLoading: boolean;
   handleSendMessage: () => void;
-  messagesEndRef: React.RefObject<HTMLDivElement>;
+  messagesEndRef: React.Ref<HTMLDivElement>;
 }) {
   return (
     <div className="w-full max-w-2xl h-[70vh] bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl flex flex-col">
