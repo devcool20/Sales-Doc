@@ -42,27 +42,27 @@ const Navbar: React.FC = () => {
         </div>
         {/* User/Auth Button Right */}
         <div className="flex-1 flex justify-end items-center">
-          <SignedIn>
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "h-10 w-10",
-                  userButtonPopoverCard: "bg-gray-900 border border-gray-700",
-                  userButtonPopoverActionButton: "text-white hover:bg-gray-800",
-                  userButtonPopoverActionButtonText: "text-white",
-                  userButtonPopoverFooter: "hidden"
-                }
-              }}
-              afterSignOutUrl="/"
-            />
-          </SignedIn>
-          <SignedOut>
-            <SignInButton>
+        <SignedIn>
+          <UserButton 
+            appearance={{
+              elements: {
+                avatarBox: "h-10 w-10",
+                userButtonPopoverCard: "bg-gray-900 border border-gray-700",
+                userButtonPopoverActionButton: "text-white hover:bg-gray-800",
+                userButtonPopoverActionButtonText: "text-white",
+                userButtonPopoverFooter: "hidden"
+              }
+            }}
+            afterSignOutUrl="/"
+          />
+        </SignedIn>
+        <SignedOut>
+          <SignInButton>
               <button className="px-6 py-2 bg-white/5 border border-white/10 backdrop-blur-xl text-white hover:bg-white/10 hover:border-white/20 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg font-medium">
-                Sign In
-              </button>
-            </SignInButton>
-          </SignedOut>
+              Sign In
+            </button>
+          </SignInButton>
+        </SignedOut>
         </div>
       </div>
     </nav>

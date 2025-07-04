@@ -70,7 +70,7 @@ Get live guidance during sales calls with suggestions to re-engage customers and
 - **Frontend**: Next.js 14+ with TypeScript
 - **Styling**: Tailwind CSS with custom glassmorphism components
 - **Authentication**: Clerk with custom dark theme integration
-- **AI Integration**: Custom API endpoints for conversation analysis
+- **AI Integration**: Google Gemini AI for chat and conversation analysis
 - **Deployment**: Vercel-ready with environment configuration
 - **UI Components**: Custom-built with accessibility in mind
 
@@ -91,7 +91,8 @@ Get live guidance during sales calls with suggestions to re-engage customers and
 - **AI suggestions**: Actionable improvement recommendations
 
 ### 💬 AI Chat (`/ai-chat`)
-- Real-time chat with Sales AI assistant
+- **Gemini AI-powered** sales assistant
+- Real-time chat with expert sales advice
 - Conversation history with message threading
 - Sales-focused responses and strategies
 - Modern chat interface with typing indicators
@@ -131,7 +132,62 @@ Get live guidance during sales calls with suggestions to re-engage customers and
 
 ## 🚀 Setup
 
-*[Setup instructions to be added]*
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+- Google Cloud account (for Gemini API)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd sales-frontend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   Create a `.env.local` file in the root directory:
+   ```env
+   # Clerk Authentication
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+   CLERK_SECRET_KEY=your_clerk_secret_key
+   
+   # Gemini AI Configuration
+   GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_api_key
+   GEMINI_MODEL=gemini-1.5-flash
+   ```
+
+4. **Configure Clerk Authentication**
+   - Sign up at [Clerk.com](https://clerk.com)
+   - Create a new application
+   - Copy your publishable and secret keys
+   - See `CLERK_SETUP.md` for detailed instructions
+
+5. **Configure Gemini AI**
+   - Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - See `GEMINI_SETUP.md` for detailed instructions
+
+6. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+7. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+### AI Features Setup
+
+The platform now uses **Google Gemini AI** for:
+- **AI Chat**: Sales-focused conversations and advice
+- **Conversation Analysis**: Real-time sentiment and effectiveness analysis
+- **Recommendations**: Actionable sales improvement suggestions
+
+See `GEMINI_SETUP.md` for complete AI configuration details.
 
 ## 📄 License
 

@@ -1,29 +1,32 @@
 import { NextResponse } from 'next/server';
-
-// This is a mock analysis function. In a real application, this would involve a more complex NLP model.
-const generateMockAnalysis = (conversation: { speaker: string; text: string }[]) => {
-  return conversation.map((turn, index) => ({
-    turn: index + 1,
-    speaker: turn.speaker.toUpperCase(),
-    text: turn.text,
-    sentiment: Math.random() > 0.5 ? 'positive' : 'neutral',
-    engagement: `${Math.floor(Math.random() * 40) + 40}%`,
-    effectiveness: `${Math.floor(Math.random() * 30) + 60}%`,
-    objectionRaised: Math.random() > 0.8 ? 'Yes' : 'No',
-    nextStepClarity: `${Math.floor(Math.random() * 50) + 40}%`,
-    keyTopics: 'Dynamic, Mocked, Topics',
-    probability: `${(Math.random() * 20 + 20).toFixed(2)}%`,
-    suggestion: turn.speaker.toUpperCase() === 'SALES REP' && Math.random() > 0.5 ? 'Consider asking an open-ended question to encourage the customer to share more.' : null,
-  }));
-};
+import { analyzeConversation } from '@/lib/gemini';
 
 export async function POST(req: Request) {
   try {
     const { conversation } = await req.json();
-    const analysis = generateMockAnalysis(conversation);
+
+    if (!conversation || !Array.isArray(conversation)) {
+      return NextResponse.json({ error: 'Conversation array is required' }, { status: 400 });
+    }
+
+    // Validate conversation structure
+    const isValidConversation = conversation.every(turn => 
+      turn && typeof turn.speaker === 'string' && typeof turn.text === 'string'
+    );
+
+    if (!isValidConversation) {
+      return NextResponse.json({ error: 'Invalid conversation format' }, { status: 400 });
+    }
+
+    // Use Gemini to analyze the conversation
+    const analysis = await analyzeConversation(conversation);
+    
     return NextResponse.json(analysis);
   } catch (error) {
     console.error('Error in analyze-conversation API:', error);
-    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to analyze conversation',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

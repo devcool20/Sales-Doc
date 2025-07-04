@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
 
 const BACKEND_ANALYZE_URL = '/api/proxy_analyze_conversation';
@@ -103,6 +103,154 @@ const EXAMPLES = [
   }
 ];
 
+// AnalyzerInterface moved outside AppPage
+function AnalyzerInterface({
+  isTurnByTurn,
+  conversation,
+  currentTurn,
+  currentSpeaker,
+  analysis,
+  llmAdvice,
+  isLoading,
+  error,
+  setIsTurnByTurn,
+  setCurrentTurn,
+  handleKeyDown,
+  handleAnalyze,
+  handleClear,
+  handleExampleClick,
+}) {
+  return (
+    <>
+      <div className="text-center mb-12 z-10">
+        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
+          Sales AI Analyzer
+        </h1>
+        <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
+          Unlock insights from your sales calls. Input your conversations and let our AI provide you with actionable intelligence.
+        </p>
+      </div>
+      <div className="w-full max-w-4xl z-10">
+        <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
+          <div className="flex items-center justify-center mb-4">
+            <span className="mr-3 text-gray-400">One-go</span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked={isTurnByTurn} onChange={() => setIsTurnByTurn(!isTurnByTurn)} className="sr-only peer" />
+              <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+            <span className="ml-3 text-gray-400">Turn-by-turn</span>
+          </div>
+          {isTurnByTurn && conversation.length > 0 && (
+            <div className="mb-4 max-h-48 overflow-y-auto p-4 bg-gray-900/50 rounded-lg">
+              {conversation.map((turn, index) => (
+                <p key={index} className="mb-1"><span className="font-semibold">{turn.speaker}:</span> {turn.text}</p>
+              ))}
+            </div>
+          )}
+          <textarea
+            className="w-full h-48 bg-gray-900/50 border border-gray-700/50 rounded-lg p-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300"
+            placeholder={isTurnByTurn ? `Enter ${currentSpeaker}'s turn... (Press Enter to submit)` : "Paste the full conversation here (e.g., 'Sales Rep: ...\nCustomer: ...')"}
+            value={currentTurn}
+            onChange={(e) => setCurrentTurn(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <div className="flex flex-col items-center mt-2 mb-2">
+            <span className="text-gray-400 font-medium mb-1 text-xs">Examples:</span>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {EXAMPLES.map((ex, idx) => (
+                <button
+                  key={ex.title}
+                  onClick={() => handleExampleClick(ex.turns)}
+                  className="text-xs px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full font-semibold transition-all duration-300 shadow-md"
+                  type="button"
+                >
+                  {ex.title}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="text-center mt-6 flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <button 
+              onClick={handleAnalyze}
+              disabled={isLoading || (!currentTurn && conversation.length === 0)}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'Analyzing...' : 'Start Analysis'}
+            </button>
+            <button
+              onClick={handleClear}
+              className="bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-lg"
+              type="button"
+            >
+              Clear
+            </button>
+          </div>
+          {error && <div className="text-center text-red-400 mt-4">{error}</div>}
+        </div>
+      </div>
+      {analysis && analysis.length > 0 && (
+        <div className="w-full max-w-4xl z-10 mt-8">
+          <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
+            <h2 className="text-3xl font-bold text-white mb-6 text-center">Analysis Results</h2>
+            <div className="space-y-6">
+              {(() => {
+                // Build conversationTurns from analysis data
+                const conversationTurns = analysis.map(turn => {
+                  // Prefer turn.message, then turn.text, fallback to empty string
+                  return (turn.speaker ? turn.speaker + ': ' : '') + (turn.message || turn.text || '');
+                });
+                return analysis.map((turn, idx) => {
+                  // Always simulate metrics using the reconstructed conversationTurns
+                  const { metrics } = simulateMetricsForTurn(conversationTurns, idx);
+                  const isSalesRep = (turn.speaker || '').toLowerCase().includes('sales');
+                  return (
+                    <div key={turn.turn || idx} className="bg-gray-800/50 p-6 rounded-lg border border-gray-700/50">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-xl font-semibold text-white">Turn {turn.turn} - {turn.speaker}</h3>
+                        <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500">
+                          {typeof turn.probability === 'number' ? `${(turn.probability * 100).toFixed(2)}%` : turn.probability}
+                        </span>
+                      </div>
+                      <p className="text-gray-300 mb-4">{turn.message || turn.text}</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Sentiment:</span> {metrics.customer_sentiment ?? 'N/A'}</div>
+                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Engagement:</span> {metrics.customer_engagement !== undefined ? `${Math.round(metrics.customer_engagement * 100)}%` : 'N/A'}</div>
+                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Effectiveness:</span> {metrics.salesperson_effectiveness !== undefined ? `${Math.round(metrics.salesperson_effectiveness * 100)}%` : 'N/A'}</div>
+                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Objection Raised:</span> {metrics.objection_raised !== undefined ? (metrics.objection_raised ? 'Yes' : 'No') : 'N/A'}</div>
+                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Next Step Clarity:</span> {metrics.next_step_clarity_score !== undefined ? `${Math.round(metrics.next_step_clarity_score * 100)}%` : 'N/A'}</div>
+                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Key Topics:</span> {Array.isArray(metrics.key_topics) ? metrics.key_topics.join(', ') : 'N/A'}</div>
+                      </div>
+                      {isSalesRep && (
+                        <div className="bg-blue-900/50 border border-blue-700/50 p-4 rounded-lg">
+                          <h4 className="font-semibold text-blue-300 mb-2">Suggestion for Salesperson:</h4>
+                          <p className="text-blue-200">{turn.suggestion || 'No specific suggestion generated for this turn.'}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+          {llmAdvice && (
+            <div className="mt-8 bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
+              <h4 className="text-2xl font-bold text-white mb-4 text-center">Overall AI Suggestion for this Conversation</h4>
+              <div className="space-y-4 text-lg text-gray-100">
+                {llmAdvice.map((point, idx) => (
+                  <div key={idx} className="flex items-start space-x-3">
+                    <span className="text-blue-400 font-bold text-xl mt-0.5">•</span>
+                    <p className="flex-1 leading-relaxed">{point.replace(/^[-•]\s*/, '').trim()}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function AppPage() {
   const [isTurnByTurn, setIsTurnByTurn] = useState(false);
   const [conversation, setConversation] = useState<{ speaker: string; text: string }[]>([]);
@@ -151,10 +299,10 @@ export default function AppPage() {
     }
     try {
       const res = await fetch(BACKEND_ANALYZE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversation: conversationToAnalyze.map(t => `${t.speaker}: ${t.text}`) }),
-      });
+    });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Failed to analyze conversation');
@@ -162,7 +310,13 @@ export default function AppPage() {
       const data = await res.json();
       console.log('ANALYZE API RESPONSE:', data);
       setAnalysis(data.results || []);
-      fetchLlmAdvice(conversationToAnalyze.map(t => `${t.speaker}: ${t.text}`));
+      // Use the overall advice from Gemini instead of separate LLM call
+      if (data.overallAdvice && data.overallAdvice.length > 0) {
+        setLlmAdvice(data.overallAdvice);
+        setIsLoading(false);
+      } else {
+        fetchLlmAdvice(conversationToAnalyze.map(t => `${t.speaker}: ${t.text}`));
+      }
     } catch (e: any) {
       setError(e.message || 'Failed to analyze conversation');
       setAnalysis([]);
@@ -230,138 +384,27 @@ export default function AppPage() {
     setCurrentSpeaker('Sales Rep');
   };
 
-  const AnalyzerInterface = () => (
-    <>
-      <div className="text-center mb-12 z-10">
-        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
-          Sales AI Analyzer
-        </h1>
-        <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
-          Unlock insights from your sales calls. Input your conversations and let our AI provide you with actionable intelligence.
-        </p>
-      </div>
-        <div className="w-full max-w-4xl z-10">
-          <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
-            <div className="flex items-center justify-center mb-4">
-              <span className="mr-3 text-gray-400">One-go</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={isTurnByTurn} onChange={() => setIsTurnByTurn(!isTurnByTurn)} className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-              <span className="ml-3 text-gray-400">Turn-by-turn</span>
-            </div>
-            {isTurnByTurn && conversation.length > 0 && (
-              <div className="mb-4 max-h-48 overflow-y-auto p-4 bg-gray-900/50 rounded-lg">
-                {conversation.map((turn, index) => (
-                  <p key={index} className="mb-1"><span className="font-semibold">{turn.speaker}:</span> {turn.text}</p>
-                ))}
-              </div>
-            )}
-            <textarea
-              className="w-full h-48 bg-gray-900/50 border border-gray-700/50 rounded-lg p-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300"
-              placeholder={isTurnByTurn ? `Enter ${currentSpeaker}'s turn... (Press Enter to submit)` : "Paste the full conversation here (e.g., 'Sales Rep: ...\nCustomer: ...')"}
-              value={currentTurn}
-              onChange={(e) => setCurrentTurn(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-            <div className="flex flex-col items-center mt-2 mb-2">
-              <span className="text-gray-400 font-medium mb-1 text-xs">Examples:</span>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {EXAMPLES.map((ex, idx) => (
-                  <button
-                    key={ex.title}
-                    onClick={() => handleExampleClick(ex.turns)}
-                    className="text-xs px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full font-semibold transition-all duration-300 shadow-md"
-                    type="button"
-                  >
-                    {ex.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="text-center mt-6 flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <button 
-                onClick={handleAnalyze}
-                disabled={isLoading || (!currentTurn && conversation.length === 0)}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? 'Analyzing...' : 'Start Analysis'}
-              </button>
-              <button
-                onClick={handleClear}
-                className="bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-lg"
-                type="button"
-              >
-                Clear
-              </button>
-            </div>
-            {error && <div className="text-center text-red-400 mt-4">{error}</div>}
-          </div>
-        </div>
-        {analysis && analysis.length > 0 && (
-          <div className="w-full max-w-4xl z-10 mt-8">
-            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
-              <h2 className="text-3xl font-bold text-white mb-6 text-center">Analysis Results</h2>
-              <div className="space-y-6">
-                {(() => {
-                  // Build conversationTurns from analysis data
-                  const conversationTurns = analysis.map(turn => {
-                    // Prefer turn.message, then turn.text, fallback to empty string
-                    return (turn.speaker ? turn.speaker + ': ' : '') + (turn.message || turn.text || '');
-                  });
-                  return analysis.map((turn, idx) => {
-                    // Always simulate metrics using the reconstructed conversationTurns
-                    const { metrics } = simulateMetricsForTurn(conversationTurns, idx);
-                    return (
-                      <div key={turn.turn || idx} className="bg-gray-800/50 p-6 rounded-lg border border-gray-700/50">
-                        <div className="flex justify-between items-center mb-2">
-                          <h3 className="text-xl font-semibold text-white">Turn {turn.turn} - {turn.speaker}</h3>
-                          <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500">
-                            {typeof turn.probability === 'number' ? `${(turn.probability * 100).toFixed(2)}%` : turn.probability}
-                          </span>
-                        </div>
-                        <p className="text-gray-300 mb-4">{turn.message || turn.text}</p>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
-                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Sentiment:</span> {metrics.customer_sentiment ?? 'N/A'}</div>
-                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Engagement:</span> {metrics.customer_engagement !== undefined ? `${Math.round(metrics.customer_engagement * 100)}%` : 'N/A'}</div>
-                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Effectiveness:</span> {metrics.salesperson_effectiveness !== undefined ? `${Math.round(metrics.salesperson_effectiveness * 100)}%` : 'N/A'}</div>
-                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Objection Raised:</span> {metrics.objection_raised !== undefined ? (metrics.objection_raised ? 'Yes' : 'No') : 'N/A'}</div>
-                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Next Step Clarity:</span> {metrics.next_step_clarity_score !== undefined ? `${Math.round(metrics.next_step_clarity_score * 100)}%` : 'N/A'}</div>
-                          <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Key Topics:</span> {Array.isArray(metrics.key_topics) ? metrics.key_topics.join(', ') : 'N/A'}</div>
-                        </div>
-                        {turn.suggestion && (
-                          <div className="bg-blue-900/50 border border-blue-700/50 p-4 rounded-lg">
-                            <h4 className="font-semibold text-blue-300 mb-2">Suggestion for Salesperson:</h4>
-                            <p className="text-blue-200">{turn.suggestion}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-            {llmAdvice && (
-              <div className="mt-8 bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
-                <h4 className="text-2xl font-bold text-white mb-4 text-center">Overall AI Suggestion for this Conversation</h4>
-                <ul className="list-disc list-inside space-y-3 text-lg text-gray-100">
-                  {llmAdvice.map((point, idx) => (
-                    <li key={idx}>{point}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-    </>
-  );
-
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
       <div className="absolute inset-0 bg-grid-slate-900/[0.04] bg-[bottom_1px_center] dark:bg-grid-slate-400/[0.05] dark:bg-bottom dark:border-b dark:border-slate-100/5"></div>
       <div className="relative min-h-screen flex flex-col items-center justify-center p-4 pt-24">
         <SignedIn>
-          <AnalyzerInterface />
+          <AnalyzerInterface
+            isTurnByTurn={isTurnByTurn}
+            conversation={conversation}
+            currentTurn={currentTurn}
+            currentSpeaker={currentSpeaker}
+            analysis={analysis}
+            llmAdvice={llmAdvice}
+            isLoading={isLoading}
+            error={error}
+            setIsTurnByTurn={setIsTurnByTurn}
+            setCurrentTurn={setCurrentTurn}
+            handleKeyDown={handleKeyDown}
+            handleAnalyze={handleAnalyze}
+            handleClear={handleClear}
+            handleExampleClick={handleExampleClick}
+          />
         </SignedIn>
         
         <SignedOut>
