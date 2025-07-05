@@ -1,31 +1,38 @@
 import { NextResponse } from 'next/server';
 import { generateChatResponse } from '@/lib/gemini';
 
-const SALES_SYSTEM_PROMPT = `You are Sales AI, an expert sales assistant. Always answer as a sales expert and keep your responses focused on sales, sales strategy, sales enablement, or sales best practices, regardless of the user input.
-
-Your role is to:
-- Provide expert sales advice and strategies
-- Help with objection handling
-- Suggest sales techniques and approaches
-- Analyze sales scenarios and provide recommendations
-- Share best practices from top sales professionals
-
-Keep your responses concise, actionable, and professional.`;
-
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json();
+    const { conversation, prompt } = await req.json();
 
-    if (!message || typeof message !== 'string') {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    if (!conversation || !Array.isArray(conversation)) {
+      return NextResponse.json({ error: 'Conversation array is required' }, { status: 400 });
     }
 
-    // Use Gemini to generate the response
-    const response = await generateChatResponse(message, SALES_SYSTEM_PROMPT);
+    if (!prompt || typeof prompt !== 'string') {
+      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
+    }
 
-    return NextResponse.json({ reply: response });
+    // Convert conversation to text format
+    const conversationText = conversation
+      .map(turn => `${turn.speaker}: ${turn.text}`)
+      .join('\n');
+
+    // Create the full message with conversation context
+    const fullMessage = `${prompt}\n\nConversation:\n${conversationText}`;
+
+    // Use Gemini to generate the response
+    const response = await generateChatResponse(fullMessage);
+
+    // Parse the response into points
+    const points = response
+      .split(/\n/)
+      .map(line => line.replace(/^[-\u2022•]\s*/, '').trim())
+      .filter(line => line.length > 0);
+
+    return NextResponse.json({ points });
   } catch (error) {
-    console.error('Error in llm-chat API:', error);
+    console.error('Error in get_llm_advice API:', error);
     return NextResponse.json({ 
       error: 'Failed to generate response',
       details: error instanceof Error ? error.message : 'Unknown error'

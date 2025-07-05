@@ -37,66 +37,42 @@ export async function generateChatResponse(prompt: string, context?: string) {
   }
 }
 
-// Helper function to analyze conversation and provide recommendations
-export async function analyzeConversation(conversation: { speaker: string; text: string }[]) {
+export async function generateSuggestionsAndOverallAdvice(conversation: { speaker: string; text: string }[]) {
   try {
     const conversationText = conversation
       .map(turn => `${turn.speaker}: ${turn.text}`)
       .join('\n');
 
-    const analysisPrompt = `
-${SALES_SYSTEM_PROMPT}
-
-Analyze the following sales conversation turn by turn. For EVERY turn, you MUST provide ALL metrics below.
-
-**REQUIRED FORMAT FOR EACH TURN:**
-
-## Turn [Number] - [Speaker]
-**What was said:** [quote the exact text]
-
-**Metrics:**
-- **Sentiment:** [positive/neutral/negative]
-- **Engagement:** [percentage]%
-- **Effectiveness:** [percentage]%
-- **Objection Raised:** [Yes/No]
-- **Next Step Clarity:** [percentage]%
-- **Key Topics:** [comma-separated list]
-
-**FOR SALES REP TURNS ONLY - MANDATORY:**
-- **Sales Rep Suggestion:** [Provide a specific, actionable suggestion to improve their pitch for THIS turn. This field is ABSOLUTELY MANDATORY for every sales rep turn. NEVER, EVER skip this or provide a generic placeholder. The suggestion must be directly relevant to the sales rep's last statement or the customer's preceding statement.]
-
-**FOR CUSTOMER TURNS:**
-- **General Suggestion:** [Optional general observation or suggestion relevant to the customer's turn.]
-
-After analyzing all turns, provide:
-
-## Overall AI Suggestion for this Conversation
-- [Single complete, actionable sentence suggestion 1]
-- [Single complete, actionable sentence suggestion 2]
-- [Single complete, actionable sentence suggestion 3]
-
-**CRITICAL RULES:**
-1. "Sales Rep Suggestion" is NON-NEGOTIABLE for every sales rep turn. If you cannot think of one, you MUST still provide a relevant, actionable suggestion.
-2. Each bullet point (for both turn suggestions and overall advice) must be a single, complete, actionable sentence on one line.
-3. NEVER output a bullet that is a single word or fragment. NEVER split a bullet across multiple lines. If a bullet is not a complete sentence, rewrite it so it is.
-4. No text should split across multiple lines or bullets.
-5. Always include ALL metrics for every turn.
-
-Conversation to analyze:
-${conversationText}
-`;
+    const analysisPrompt = `\n${SALES_SYSTEM_PROMPT}\n\nAnalyze the following sales conversation turn by turn. \n\n**REQUIRED FORMAT FOR EACH TURN:**\n\n## Turn [Number] - [Speaker]\n**What was said:** [quote the exact text]\n\n**FOR SALES REP TURNS ONLY - MANDATORY:**\n- **Sales Rep Suggestion:** [Provide a specific, actionable suggestion to improve their pitch for THIS turn. This field is ABSOLUTELY MANDATORY for every sales rep turn. NEVER, EVER skip this or provide a generic placeholder. The suggestion must be directly relevant to the sales rep's last statement or the customer's preceding statement.]\n\n**FOR CUSTOMER TURNS:**\n- **General Suggestion:** [Optional general observation or suggestion relevant to the customer's turn.]\n\nAfter analyzing all turns, provide:\n\n## Overall AI Suggestion for this Conversation\n- [Single complete, actionable sentence suggestion 1]\n- [Single complete, actionable sentence suggestion 2]\n- [Single complete, actionable sentence suggestion 3]\n\n**CRITICAL RULES:**\n1. "Sales Rep Suggestion" is NON-NEGOTIABLE for every sales rep turn. If you cannot think of one, you MUST still provide a relevant, actionable suggestion.\n2. Each bullet point (for both turn suggestions and overall advice) must be a single, complete, actionable sentence on one line.\n3. NEVER output a bullet that is a single word or fragment. NEVER split a bullet across multiple lines. If a bullet is not a complete sentence, rewrite it so it is.\n4. No text should split across multiple lines or bullets.\n\nConversation to analyze:\n${conversationText}\n`;
 
     const result = await model.generateContent(analysisPrompt);
     const response = await result.response;
     return response.text();
   } catch (error) {
-    console.error('Error analyzing conversation:', error);
-    throw new Error('Failed to analyze conversation');
+    console.error('Error generating suggestions and overall advice:', error);
+    throw new Error('Failed to generate suggestions and overall advice');
+  }
+}
+
+export async function generateMetrics(conversation: { speaker: string; text: string }[]) {
+  try {
+    const conversationText = conversation
+      .map(turn => `${turn.speaker}: ${turn.text}`)
+      .join('\n');
+
+    const metricsPrompt = `\n${SALES_SYSTEM_PROMPT}\n\nAnalyze the following sales conversation turn by turn. For EVERY turn, you MUST provide ALL metrics below.\n\n**REQUIRED FORMAT FOR EACH TURN:**\n\n## Turn [Number] - [Speaker]\n**What was said:** [quote the exact text]\n\n**Metrics:**\n- **Sentiment:** [positive/neutral/negative]\n- **Engagement:** [percentage]%\n- **Effectiveness:** [percentage]%\n- **Objection Raised:** [Yes/No]\n- **Next Step Clarity:** [percentage]%\n- **Key Topics:** [comma-separated list]\n\n**CRITICAL RULES:**\n1. Always include ALL metrics for every turn.\n\nConversation to analyze:\n${conversationText}\n`;
+
+    const result = await model.generateContent(metricsPrompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Error generating metrics:', error);
+    throw new Error('Failed to generate metrics');
   }
 }
 
 // Helper function to parse the Gemini response into structured data
-function parseAnalysisResponse(responseText: string, originalConversation: { speaker: string; text: string }[]) {
+export function parseAnalysisResponse(responseText: string, originalConversation: { speaker: string; text: string }[]) {
   const results: any[] = [];
   let overallAdvice: string[] = [];
   
@@ -118,14 +94,6 @@ function parseAnalysisResponse(responseText: string, originalConversation: { spe
     const messageMatch = section.match(/\*\*What was said:\*\* (.+?)(?:\n\n|\n\*\*)/s);
     const message = messageMatch ? messageMatch[1].trim() : (originalConversation[index - 1]?.text || '');
     
-    // Extract metrics
-    const sentimentMatch = section.match(/\*\*Sentiment:\*\* (.+?)(?:\n|-)/);
-    const engagementMatch = section.match(/\*\*Engagement:\*\* (\d+)%/);
-    const effectivenessMatch = section.match(/\*\*Effectiveness:\*\* (\d+)%/);
-    const objectionMatch = section.match(/\*\*Objection Raised:\*\* (.+?)(?:\n|-)/);
-    const clarityMatch = section.match(/\*\*Next Step Clarity:\*\* (\d+)%/);
-    const topicsMatch = section.match(/\*\*Key Topics:\*\* (.+?)(?:\n\n|\n\*\*)/s);
-    
     // Extract suggestions
     const salesSuggestionMatch = section.match(/\*\*Sales Rep Suggestion:\*\* ([^\n]+)/);
     const generalSuggestionMatch = section.match(/\*\*General Suggestion:\*\* ([^\n]+)/);
@@ -133,25 +101,12 @@ function parseAnalysisResponse(responseText: string, originalConversation: { spe
     const suggestion = salesSuggestionMatch ? salesSuggestionMatch[1].trim() : 
                      generalSuggestionMatch ? generalSuggestionMatch[1].trim() : ''; // Ensure it's an empty string, not null
     
-    // Calculate probability (mock for now, based on effectiveness)
-    const effectiveness = effectivenessMatch ? parseInt(effectivenessMatch[1]) : 50;
-    const probability = effectiveness / 100;
-    
     results.push({
       turn: index,
       speaker: speaker,
       message: message,
       text: message, // Add both for compatibility
-      probability: probability,
       suggestion: suggestion,
-      metrics: {
-        customer_sentiment: sentimentMatch ? sentimentMatch[1].trim() : 'neutral',
-        customer_engagement: engagementMatch ? parseInt(engagementMatch[1]) / 100 : 0.5,
-        salesperson_effectiveness: effectivenessMatch ? parseInt(effectivenessMatch[1]) / 100 : 0.5,
-        objection_raised: objectionMatch ? objectionMatch[1].toLowerCase().includes('yes') : false,
-        next_step_clarity_score: clarityMatch ? parseInt(clarityMatch[1]) / 100 : 0.5,
-        key_topics: topicsMatch ? topicsMatch[1].split(',').map(t => t.trim()) : []
-      }
     });
   });
   
@@ -168,4 +123,54 @@ function parseAnalysisResponse(responseText: string, originalConversation: { spe
     results: results,
     overallAdvice: overallAdvice
   };
+}
+
+export function parseMetricsResponse(responseText: string, originalConversation: { speaker: string; text: string }[]) {
+  const metricsResults: any[] = [];
+
+  // Split response into sections
+  const sections = responseText.split(/## Turn \d+/);
+
+  // Extract turn data
+  sections.forEach((section, index) => {
+    if (index === 0) return; // Skip the first empty section
+
+    // Extract speaker from section header
+    const headerMatch = responseText.match(new RegExp(`## Turn ${index} - (.+?)\\n`));
+    const speaker = headerMatch ? headerMatch[1].trim() : (originalConversation[index - 1]?.speaker || 'Unknown');
+
+    // Extract message text
+    const messageMatch = section.match(/\*\*What was said:\*\* (.+?)(?:\n\n|\n\*\*)/s);
+    const message = messageMatch ? messageMatch[1].trim() : (originalConversation[index - 1]?.text || '');
+
+    // Extract metrics with more flexible patterns
+    const sentimentMatch = section.match(/\*\*Sentiment:\*\*\s*(.+?)(?:\n|$)/i) || section.match(/Sentiment:\s*(.+?)(?:\n|$)/i);
+    const engagementMatch = section.match(/\*\*Engagement:\*\*\s*(\d+)%?/i) || section.match(/Engagement:\s*(\d+)%?/i);
+    const effectivenessMatch = section.match(/\*\*Effectiveness:\*\*\s*(\d+)%?/i) || section.match(/Effectiveness:\s*(\d+)%?/i);
+    const objectionMatch = section.match(/\*\*Objection Raised:\*\*\s*(.+?)(?:\n|$)/i) || section.match(/Objection Raised:\s*(.+?)(?:\n|$)/i);
+    const clarityMatch = section.match(/\*\*Next Step Clarity:\*\*\s*(\d+)%?/i) || section.match(/Next Step Clarity:\s*(\d+)%?/i);
+    const topicsMatch = section.match(/\*\*Key Topics:\*\*\s*(.*?)(?:\n\*\*|$)/si) || section.match(/Key Topics:\s*(.*?)(?:\n|$)/si);
+
+    // Calculate probability (mock for now, based on effectiveness)
+    const effectiveness = effectivenessMatch ? parseInt(effectivenessMatch[1]) : 50;
+    const probability = effectiveness / 100;
+
+    metricsResults.push({
+      turn: index,
+      speaker: speaker,
+      message: message,
+      text: message, // Add both for compatibility
+      probability: probability,
+      metrics: {
+        customer_sentiment: sentimentMatch ? sentimentMatch[1].trim() : 'neutral',
+        customer_engagement: engagementMatch ? parseInt(engagementMatch[1]) / 100 : 0.5,
+        salesperson_effectiveness: effectivenessMatch ? parseInt(effectivenessMatch[1]) / 100 : 0.5,
+        objection_raised: objectionMatch ? objectionMatch[1].toLowerCase().includes('yes') : false,
+        next_step_clarity_score: clarityMatch ? parseInt(clarityMatch[1]) / 100 : 0.5,
+        key_topics: topicsMatch && topicsMatch[1].trim() !== '' ? topicsMatch[1].split(',').map(t => t.trim()) : []
+      }
+    });
+  });
+
+  return metricsResults;
 } 

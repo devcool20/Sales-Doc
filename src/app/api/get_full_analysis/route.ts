@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     }
 
     // Validate conversation structure
-    const isValidConversation = conversation.every(turn => 
+    const isValidConversation = conversation.every(turn =>
       turn && typeof turn.speaker === 'string' && typeof turn.text === 'string'
     );
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid conversation format' }, { status: 400 });
     }
 
-    // Use Gemini to analyze the conversation
+    // Use local Gemini lib to analyze the conversation
     const analysisResponse = await generateSuggestionsAndOverallAdvice(conversation);
     const parsedAnalysis = parseAnalysisResponse(analysisResponse, conversation);
     
@@ -28,14 +28,13 @@ export async function POST(req: Request) {
       overallAdvice: parsedAnalysis.overallAdvice
     };
     
-    console.log('Raw Analysis Response from Gemini:', JSON.stringify(response, null, 2)); // Log the raw analysis
-    
+    console.log('Full Analysis Object (from get_full_analysis API):', JSON.stringify(response, null, 2));
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error in analyze-conversation API:', error);
-    return NextResponse.json({ 
-      error: 'Failed to analyze conversation',
+    console.error('Error in get_full_analysis API:', error);
+    return NextResponse.json({
+      error: 'Failed to analyze conversation with Gemini',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
-}
+} 

@@ -117,16 +117,25 @@ export default function AiChatPage() {
     setIsLoading(true);
 
     try {
+      // For chat, we can use a simple conversation format
+      const conversation = [{ speaker: 'User', text: input }];
+      const prompt = 'You are Sales AI, an expert sales assistant. Provide helpful sales advice and answer the user\'s question with actionable insights.';
+
       const res = await fetch('/api/get_llm_advice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ conversation, prompt }),
       });
 
       if (res.ok) {
         const data = await res.json();
+        // The API returns points array, so join them into a readable response
+        const response = data.points && data.points.length > 0 
+          ? data.points.join('\n\n') 
+          : 'No response from AI.';
+        
         setMessages([...newMessages, {
-          text: data.reply || 'No response from AI.',
+          text: response,
           sender: 'ai'
         }]);
       } else {
@@ -148,7 +157,7 @@ export default function AiChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white flex flex-col justify-center items-center p-4 pt-16">
       <SignedIn>
         <ChatInterface
           messages={messages}

@@ -245,9 +245,9 @@ export default function RootLayout({
     >
       <html lang="en">
         <body className="bg-[#0a0a0a] text-gray-200 antialiased">
-          <Navbar /> {/* Render the Navbar component */}
-          <main>{children}</main> {/* Render page content */}
-          {showFooter && <Footer />} {/* Render the Footer component conditionally */}
+          <Navbar />
+          <main>{children}</main>
+          {showFooter && <Footer />}
         </body>
       </html>
     </ClerkProvider>
