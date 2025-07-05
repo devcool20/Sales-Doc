@@ -20,6 +20,7 @@ export async function POST(req: Request) {
 
     // Use Gemini to analyze the conversation
     const analysis = await analyzeConversation(conversation);
+    console.log('Raw Analysis Response from Gemini:', JSON.stringify(analysis, null, 2)); // Log the raw analysis
     
     return NextResponse.json(analysis);
   } catch (error) {

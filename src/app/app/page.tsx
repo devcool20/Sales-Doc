@@ -10,7 +10,6 @@ const LLM_ADVICE_PROMPT = `You are Sales AI, an expert sales assistant. Given th
 // Simulate metrics for a conversation turn, ported from the HTML demo
 function simulateMetricsForTurn(conversationTurns: string[], currentTurnIndex: number) {
   let metrics: any = {};
-  let suggestion = "No specific suggestion for this turn.";
   const turnString = conversationTurns[currentTurnIndex];
   if (!turnString) {
     return {
@@ -21,8 +20,7 @@ function simulateMetricsForTurn(conversationTurns: string[], currentTurnIndex: n
         objection_raised: 'N/A',
         next_step_clarity_score: 'N/A',
         key_topics: []
-      },
-      suggestion: "Error: Turn data unavailable."
+      }
     };
   }
   const parts = turnString.split(":");
@@ -58,19 +56,7 @@ function simulateMetricsForTurn(conversationTurns: string[], currentTurnIndex: n
   if (/(compliance|security|encryption|hipaa)/.test(messageContent)) topics.push('Security/Compliance');
   if (/(team|workflow|tasks|project)/.test(messageContent)) topics.push('Team/Workflow Management');
   metrics.key_topics = [...new Set(topics)];
-  // Suggestion for Salesperson
-  if (speaker === 'sales_rep') {
-    if (metrics.objection_raised) suggestion = "Address the customer's objection directly. Re-frame value or offer a specific solution to mitigate their concern.";
-    else if (metrics.customer_sentiment === 'negative' && metrics.customer_engagement < 0.6) suggestion = "Re-engage the customer. Try asking an open-ended question to understand their underlying concerns or needs more deeply.";
-    else if (metrics.next_step_clarity_score < 0.7) suggestion = "Propose a very clear, low-commitment next step to advance the conversation (e.g., 'Would you be open to...?', 'Shall we set up...?').";
-    else if (/(value|roi)/.test(messageContent)) suggestion = "Excellent job focusing on value. Continue to connect product features directly to customer benefits and ROI.";
-    else if (messageContent.includes('solution') && !messageContent.includes('problem')) suggestion = "Continue to present how the solution directly solves their pain points and unique requirements.";
-    else if (messageContent.includes('feature')) suggestion = "Deep-dive into the requested feature, but always tie it back to a customer benefit or problem it solves.";
-    else if (/(demo|trial|proposal)/.test(messageContent)) suggestion = "Great! Confirm next steps and timelines clearly to maintain momentum.";
-    else if (/(scaling|growth)/.test(messageContent)) suggestion = "Emphasize how the solution supports future growth and long-term needs.";
-    else suggestion = "Continue to qualify the lead. Ask probing questions to uncover more needs and move towards the next logical sales stage.";
-  }
-  return { metrics, suggestion };
+  return { metrics };
 }
 
 const EXAMPLES = [
@@ -137,33 +123,33 @@ function AnalyzerInterface({
 }) {
   return (
     <>
-      <div className="text-center mb-12 z-10">
-        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
+      <div className="text-center mb-8 sm:mb-12 z-10">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-2 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
           Sales AI Analyzer
         </h1>
-        <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
           Unlock insights from your sales calls. Input your conversations and let our AI provide you with actionable intelligence.
         </p>
       </div>
-      <div className="w-full max-w-4xl z-10">
-        <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
+      <div className="w-full max-w-xl sm:max-w-4xl z-10">
+        <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-6 sm:p-8">
           <div className="flex items-center justify-center mb-4">
-            <span className="mr-3 text-gray-400">One-go</span>
+            <span className="mr-2 sm:mr-3 text-gray-400 text-sm sm:text-base">One-go</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={isTurnByTurn} onChange={() => setIsTurnByTurn(!isTurnByTurn)} className="sr-only peer" />
-              <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-9 h-5 sm:w-11 sm:h-6 bg-gray-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
-            <span className="ml-3 text-gray-400">Turn-by-turn</span>
+            <span className="ml-2 sm:ml-3 text-gray-400 text-sm sm:text-base">Turn-by-turn</span>
           </div>
           {isTurnByTurn && conversation.length > 0 && (
-            <div className="mb-4 max-h-48 overflow-y-auto p-4 bg-gray-900/50 rounded-lg">
+            <div className="mb-4 max-h-40 sm:max-h-48 overflow-y-auto p-3 sm:p-4 bg-gray-900/50 rounded-lg text-sm sm:text-base">
               {conversation.map((turn, index) => (
                 <p key={index} className="mb-1"><span className="font-semibold">{turn.speaker}:</span> {turn.text}</p>
               ))}
             </div>
           )}
           <textarea
-            className="w-full h-48 bg-gray-900/50 border border-gray-700/50 rounded-lg p-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300"
+            className="w-full h-32 sm:h-48 bg-gray-900/50 border border-gray-700/50 rounded-lg p-3 sm:p-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300 text-sm sm:text-base"
             placeholder={isTurnByTurn ? `Enter ${currentSpeaker}'s turn... (Press Enter to submit)` : "Paste the full conversation here (e.g., 'Sales Rep: ...\nCustomer: ...')"}
             value={currentTurn}
             onChange={(e) => setCurrentTurn(e.target.value)}
@@ -171,12 +157,12 @@ function AnalyzerInterface({
           />
           <div className="flex flex-col items-center mt-2 mb-2">
             <span className="text-gray-400 font-medium mb-1 text-xs">Examples:</span>
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-wrap gap-1 sm:gap-2 justify-center">
               {EXAMPLES.map((ex, idx) => (
                 <button
                   key={ex.title}
                   onClick={() => handleExampleClick(ex.turns)}
-                  className="text-xs px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full font-semibold transition-all duration-300 shadow-md"
+                  className="text-xs px-2 py-1 sm:px-3 sm:py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full font-semibold transition-all duration-300 shadow-md"
                   type="button"
                 >
                   {ex.title}
@@ -184,30 +170,30 @@ function AnalyzerInterface({
               ))}
             </div>
           </div>
-          <div className="text-center mt-6 flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="text-center mt-4 sm:mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
             <button 
               onClick={handleAnalyze}
               disabled={isLoading || (!currentTurn && conversation.length === 0)}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-2 px-6 sm:py-3 sm:px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
               {isLoading ? 'Analyzing...' : 'Start Analysis'}
             </button>
             <button
               onClick={handleClear}
-              className="bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-lg"
+              className="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-6 sm:py-3 sm:px-8 rounded-full transition-all duration-300 shadow-lg text-sm sm:text-base"
               type="button"
             >
               Clear
             </button>
           </div>
-          {error && <div className="text-center text-red-400 mt-4">{error}</div>}
+          {error && <div className="text-center text-red-400 mt-3 sm:mt-4 text-sm sm:text-base">{error}</div>}
         </div>
       </div>
       {analysis && analysis.length > 0 && (
-        <div className="w-full max-w-4xl z-10 mt-8">
-          <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
-            <h2 className="text-3xl font-bold text-white mb-6 text-center">Analysis Results</h2>
-            <div className="space-y-6">
+        <div className="w-full max-w-xl sm:max-w-4xl z-10 mt-6 sm:mt-8">
+          <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-6 sm:p-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6 text-center">Analysis Results</h2>
+            <div className="space-y-4 sm:space-y-6">
               {(() => {
                 // Build conversationTurns from analysis data
                 const conversationTurns = analysis.map(turn => {
@@ -219,26 +205,26 @@ function AnalyzerInterface({
                   const { metrics } = simulateMetricsForTurn(conversationTurns, idx);
                   const isSalesRep = (turn.speaker || '').toLowerCase().includes('sales');
                   return (
-                    <div key={turn.turn || idx} className="bg-gray-800/50 p-6 rounded-lg border border-gray-700/50">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-xl font-semibold text-white">Turn {turn.turn} - {turn.speaker}</h3>
-                        <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500">
+                    <div key={turn.turn || idx} className="bg-gray-800/50 p-4 sm:p-6 rounded-lg border border-gray-700/50">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+                        <h3 className="text-lg sm:text-xl font-semibold text-white">Turn {turn.turn} - {turn.speaker}</h3>
+                        <span className="text-base sm:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500 mt-1 sm:mt-0">
                           {typeof turn.probability === 'number' ? `${(turn.probability * 100).toFixed(2)}%` : turn.probability}
                         </span>
                       </div>
-                      <p className="text-gray-300 mb-4">{turn.message || turn.text}</p>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
-                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Sentiment:</span> {metrics.customer_sentiment ?? 'N/A'}</div>
-                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Engagement:</span> {metrics.customer_engagement !== undefined ? `${Math.round(metrics.customer_engagement * 100)}%` : 'N/A'}</div>
-                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Effectiveness:</span> {metrics.salesperson_effectiveness !== undefined ? `${Math.round(metrics.salesperson_effectiveness * 100)}%` : 'N/A'}</div>
-                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Objection Raised:</span> {metrics.objection_raised !== undefined ? (metrics.objection_raised ? 'Yes' : 'No') : 'N/A'}</div>
-                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Next Step Clarity:</span> {metrics.next_step_clarity_score !== undefined ? `${Math.round(metrics.next_step_clarity_score * 100)}%` : 'N/A'}</div>
-                        <div className="bg-gray-700/50 p-3 rounded-md"><span className="font-semibold text-gray-400">Key Topics:</span> {Array.isArray(metrics.key_topics) ? metrics.key_topics.join(', ') : 'N/A'}</div>
+                      <p className="text-gray-300 mb-3 sm:mb-4 text-sm sm:text-base">{turn.message || turn.text}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm mb-3 sm:mb-4">
+                        <div className="bg-gray-700/50 p-2 sm:p-3 rounded-md"><span className="font-semibold text-gray-400">Sentiment:</span> {metrics.customer_sentiment ?? 'N/A'}</div>
+                        <div className="bg-gray-700/50 p-2 sm:p-3 rounded-md"><span className="font-semibold text-gray-400">Engagement:</span> {metrics.customer_engagement !== undefined ? `${Math.round(metrics.customer_engagement * 100)}%` : 'N/A'}</div>
+                        <div className="bg-gray-700/50 p-2 sm:p-3 rounded-md"><span className="font-semibold text-gray-400">Effectiveness:</span> {metrics.salesperson_effectiveness !== undefined ? `${Math.round(metrics.salesperson_effectiveness * 100)}%` : 'N/A'}</div>
+                        <div className="bg-gray-700/50 p-2 sm:p-3 rounded-md"><span className="font-semibold text-gray-400">Objection Raised:</span> {metrics.objection_raised !== undefined ? (metrics.objection_raised ? 'Yes' : 'No') : 'N/A'}</div>
+                        <div className="bg-gray-700/50 p-2 sm:p-3 rounded-md"><span className="font-semibold text-gray-400">Next Step Clarity:</span> {metrics.next_step_clarity_score !== undefined ? `${Math.round(metrics.next_step_clarity_score * 100)}%` : 'N/A'}</div>
+                        <div className="bg-gray-700/50 p-2 sm:p-3 rounded-md"><span className="font-semibold text-gray-400">Key Topics:</span> {Array.isArray(metrics.key_topics) ? metrics.key_topics.join(', ') : 'N/A'}</div>
                       </div>
                       {isSalesRep && (
-                        <div className="bg-blue-900/50 border border-blue-700/50 p-4 rounded-lg">
-                          <h4 className="font-semibold text-blue-300 mb-2">Suggestion for Salesperson:</h4>
-                          <p className="text-blue-200">{turn.suggestion || 'No specific suggestion generated for this turn.'}</p>
+                        <div className="bg-blue-900/50 border border-blue-700/50 p-3 sm:p-4 rounded-lg">
+                          <h4 className="font-semibold text-blue-300 mb-2 text-sm sm:text-base">Suggestion for Salesperson:</h4>
+                          <p className="text-blue-200 text-sm sm:text-base">{turn.suggestion || 'No specific suggestion generated for this turn.'}</p>
                         </div>
                       )}
                     </div>
@@ -248,12 +234,12 @@ function AnalyzerInterface({
             </div>
           </div>
           {llmAdvice && (
-            <div className="mt-8 bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8">
-              <h4 className="text-2xl font-bold text-white mb-4 text-center">Overall AI Suggestion for this Conversation</h4>
-              <div className="space-y-4 text-lg text-gray-100">
+            <div className="mt-6 sm:mt-8 bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-6 sm:p-8">
+              <h4 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 text-center">Overall AI Suggestion for this Conversation</h4>
+              <div className="space-y-3 sm:space-y-4 text-sm sm:text-lg text-gray-100">
                 {llmAdvice.map((point, idx) => (
-                  <div key={idx} className="flex items-start space-x-3">
-                    <span className="text-blue-400 font-bold text-xl mt-0.5">•</span>
+                  <div key={idx} className="flex items-start space-x-2 sm:space-x-3">
+                    <span className="text-blue-400 font-bold text-lg sm:text-xl mt-0.5">•</span>
                     <p className="flex-1 leading-relaxed">{point.replace(/^[-•]\s*/, '').trim()}</p>
                   </div>
                 ))}
@@ -314,31 +300,63 @@ export default function AppPage() {
     }
     try {
       const res = await fetch(BACKEND_ANALYZE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversation: conversationToAnalyze.map(t => `${t.speaker}: ${t.text}`) }),
-    });
+      });
+      console.log('API Response Status:', res.status, res.statusText); // New log
       if (!res.ok) {
         const err = await res.json();
+        console.error('API Error Response:', err); // New log
         throw new Error(err.error || 'Failed to analyze conversation');
       }
       const data = await res.json();
-      console.log('ANALYZE API RESPONSE:', data);
-      setAnalysis(data.results || []);
+      console.log('ANALYZE API RESPONSE (Parsed):', data); // Updated log
+
+      const updatedAnalysis = await Promise.all((data.results || []).map(async (turn: any, idx: number) => {
+        const isSalesRep = (turn.speaker || '').toLowerCase().includes('sales');
+        if (isSalesRep) {
+          // Construct conversation history up to this turn for context
+          const conversationHistory = conversationToAnalyze.slice(0, idx + 1).map(t => `${t.speaker}: ${t.text}`).join('\n');
+          const salesRepPrompt = `Given the following sales conversation:\n\n${conversationHistory}\n\nProvide a specific, actionable suggestion for the Sales Rep's last statement to improve their pitch or the sales outcome. Be concise and directly relevant.`;
+
+          try {
+            const llmAdviceRes = await fetch(BACKEND_GET_LLM_ADVICE_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: salesRepPrompt }),
+            });
+
+            if (llmAdviceRes.ok) {
+              const llmAdviceData = await llmAdviceRes.json();
+              turn.suggestion = llmAdviceData.reply || 'No specific suggestion generated for this turn.';
+            } else {
+              turn.suggestion = `Error fetching suggestion: ${llmAdviceRes.statusText}`;
+            }
+          } catch (llmError: any) {
+            turn.suggestion = `Error fetching suggestion: ${llmError.message}`;
+          }
+        }
+        return turn;
+      }));
+
+      setAnalysis(updatedAnalysis);
+
       // Use the overall advice from Gemini instead of separate LLM call
       if (data.overallAdvice && data.overallAdvice.length > 0) {
         setLlmAdvice(data.overallAdvice);
-        setIsLoading(false);
       } else {
+        // Fallback to fetching overall advice if not provided by the external API
         fetchLlmAdvice(conversationToAnalyze.map(t => `${t.speaker}: ${t.text}`));
       }
     } catch (e: any) {
       setError(e.message || 'Failed to analyze conversation');
       setAnalysis([]);
-      setIsLoading(false);
+      setLlmAdvice(null); // Clear overall advice on error
       return;
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const fetchLlmAdvice = async (conversationTurns: string[]) => {
@@ -358,8 +376,8 @@ export default function AppPage() {
       if (data && typeof data.reply === 'string') {
         // Split reply into points (by newlines, numbers, or bullets)
         let points = data.reply
-          .split(/\n|\d+\.|•|\-/)
-          .map((p: string) => p.trim())
+          .split(/\n/)
+          .map((p: string) => p.replace(/^\s*\d+\.\s*|^\s*[•-]+\s*/, '').trim()) // Remove numbered or bulleted prefixes
           .filter((p: string) => p.length > 0);
         // If less than 4 points, show the whole reply as one point
         if (points.length < 4) points = [data.reply];
@@ -423,28 +441,28 @@ export default function AppPage() {
         </SignedIn>
         
         <SignedOut>
-          <div className="text-center mb-12 z-10">
-            <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
+          <div className="text-center mb-8 sm:mb-12 z-10">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-2 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
               Sales AI Analyzer
             </h1>
-            <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-8">
+            <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-6 sm:mb-8">
               Unlock insights from your sales calls. Input your conversations and let our AI provide you with actionable intelligence.
             </p>
           </div>
           
-          <div className="w-full max-w-4xl z-10">
-            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-12 text-center">
-              <div className="mb-8">
-                <h2 className="text-3xl font-bold mb-4 text-white">🔍 Advanced Sales Analysis</h2>
-                <p className="text-gray-300 text-lg mb-6">
+          <div className="w-full max-w-xl sm:max-w-4xl z-10">
+            <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-8 sm:p-12 text-center">
+              <div className="mb-6 sm:mb-8">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-white">🔍 Advanced Sales Analysis</h2>
+                <p className="text-base sm:text-lg text-gray-300 mb-4 sm:mb-6">
                   Get deep insights into your sales conversations with AI-powered analysis.
                 </p>
               </div>
               
-              <div className="grid md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-                  <h3 className="text-xl font-semibold mb-3 text-white">📊 Conversation Metrics</h3>
-                  <ul className="text-gray-300 space-y-2 text-left">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 text-white">📊 Conversation Metrics</h3>
+                  <ul className="text-gray-300 space-y-1 sm:space-y-2 text-left text-sm sm:text-base">
                     <li>• Customer sentiment analysis</li>
                     <li>• Engagement level tracking</li>
                     <li>• Salesperson effectiveness scores</li>
@@ -453,9 +471,9 @@ export default function AppPage() {
                   </ul>
                 </div>
                 
-                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-                  <h3 className="text-xl font-semibold mb-3 text-white">🤖 AI-Powered Insights</h3>
-                  <ul className="text-gray-300 space-y-2 text-left">
+                <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 text-white">🤖 AI-Powered Insights</h3>
+                  <ul className="text-gray-300 space-y-1 sm:space-y-2 text-left text-sm sm:text-base">
                     <li>• Turn-by-turn conversation breakdown</li>
                     <li>• Key topic extraction</li>
                     <li>• Actionable improvement suggestions</li>
@@ -466,7 +484,7 @@ export default function AppPage() {
               </div>
               
               <SignInButton mode="modal">
-                <button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg text-lg">
+                <button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 sm:py-4 sm:px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg text-base sm:text-lg">
                   Sign In to Start Analyzing
                 </button>
               </SignInButton>

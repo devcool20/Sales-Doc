@@ -47,7 +47,7 @@ export async function analyzeConversation(conversation: { speaker: string; text:
     const analysisPrompt = `
 ${SALES_SYSTEM_PROMPT}
 
-Analyze the following sales conversation turn by turn. For EVERY turn, you MUST provide ALL metrics below:
+Analyze the following sales conversation turn by turn. For EVERY turn, you MUST provide ALL metrics below.
 
 **REQUIRED FORMAT FOR EACH TURN:**
 
@@ -63,10 +63,10 @@ Analyze the following sales conversation turn by turn. For EVERY turn, you MUST 
 - **Key Topics:** [comma-separated list]
 
 **FOR SALES REP TURNS ONLY - MANDATORY:**
-- **Sales Rep Suggestion:** [Always provide a specific, actionable suggestion to improve their pitch. This field is MANDATORY for every sales rep turn. Never skip this.]
+- **Sales Rep Suggestion:** [Provide a specific, actionable suggestion to improve their pitch for THIS turn. This field is ABSOLUTELY MANDATORY for every sales rep turn. NEVER, EVER skip this or provide a generic placeholder. The suggestion must be directly relevant to the sales rep's last statement or the customer's preceding statement.]
 
 **FOR CUSTOMER TURNS:**
-- **General Suggestion:** [Optional general observation or suggestion]
+- **General Suggestion:** [Optional general observation or suggestion relevant to the customer's turn.]
 
 After analyzing all turns, provide:
 
@@ -76,11 +76,11 @@ After analyzing all turns, provide:
 - [Single complete, actionable sentence suggestion 3]
 
 **CRITICAL RULES:**
-1. NEVER skip the "Sales Rep Suggestion" for any sales rep turn
-2. Each bullet point must be a single, complete, actionable sentence on one line
+1. "Sales Rep Suggestion" is NON-NEGOTIABLE for every sales rep turn. If you cannot think of one, you MUST still provide a relevant, actionable suggestion.
+2. Each bullet point (for both turn suggestions and overall advice) must be a single, complete, actionable sentence on one line.
 3. NEVER output a bullet that is a single word or fragment. NEVER split a bullet across multiple lines. If a bullet is not a complete sentence, rewrite it so it is.
-4. No text should split across multiple lines or bullets
-5. Always include ALL metrics for every turn
+4. No text should split across multiple lines or bullets.
+5. Always include ALL metrics for every turn.
 
 Conversation to analyze:
 ${conversationText}
@@ -88,23 +88,7 @@ ${conversationText}
 
     const result = await model.generateContent(analysisPrompt);
     const response = await result.response;
-    const responseText = response.text();
-    
-    // Parse the markdown response into structured data
-    const parsedData = parseAnalysisResponse(responseText, conversation);
-    
-    // After parsing all turns, ensure every sales rep turn has a suggestion
-    for (let i = 0; i < parsedData.results.length; i++) {
-      const turn = parsedData.results[i];
-      if ((turn.speaker || '').toLowerCase().includes('sales') && (!turn.suggestion || turn.suggestion.trim() === '')) {
-        // Fallback template suggestion
-        const msg = turn.message || turn.text || '';
-        parsedData.results[i].suggestion =
-          'Ask a clarifying question or highlight a benefit relevant to the customer\'s needs.';
-      }
-    }
-    
-    return parsedData;
+    return response.text();
   } catch (error) {
     console.error('Error analyzing conversation:', error);
     throw new Error('Failed to analyze conversation');
@@ -143,11 +127,11 @@ function parseAnalysisResponse(responseText: string, originalConversation: { spe
     const topicsMatch = section.match(/\*\*Key Topics:\*\* (.+?)(?:\n\n|\n\*\*)/s);
     
     // Extract suggestions
-    const salesSuggestionMatch = section.match(/\*\*Sales Rep Suggestion:\*\* (.+?)(?:\n\n|\n\*\*|$)/s);
-    const generalSuggestionMatch = section.match(/\*\*General Suggestion:\*\* (.+?)(?:\n\n|\n\*\*|$)/s);
+    const salesSuggestionMatch = section.match(/\*\*Sales Rep Suggestion:\*\* ([^\n]+)/);
+    const generalSuggestionMatch = section.match(/\*\*General Suggestion:\*\* ([^\n]+)/);
     
     const suggestion = salesSuggestionMatch ? salesSuggestionMatch[1].trim() : 
-                     generalSuggestionMatch ? generalSuggestionMatch[1].trim() : null;
+                     generalSuggestionMatch ? generalSuggestionMatch[1].trim() : ''; // Ensure it's an empty string, not null
     
     // Calculate probability (mock for now, based on effectiveness)
     const effectiveness = effectivenessMatch ? parseInt(effectivenessMatch[1]) : 50;
@@ -175,40 +159,9 @@ function parseAnalysisResponse(responseText: string, originalConversation: { spe
   const overallSection = responseText.match(/## Overall AI Suggestion for this Conversation\n([\s\S]*?)$/);
   if (overallSection) {
     const adviceText = overallSection[1];
-    // Group lines into bullets: lines starting with '-' start a new bullet, others are appended
-    const lines = adviceText.split('\n');
-    let bullets = [];
-    let current = '';
-    for (let line of lines) {
-      if (line.trim().startsWith('-')) {
-        if (current) bullets.push(current.trim());
-        current = line.replace(/^[-•]\s*/, '').trim();
-      } else if (line.trim().length > 0) {
-        current += ' ' + line.trim();
-      }
-    }
-    if (current) bullets.push(current.trim());
-    // Bulletproof merge: merge fragments and bullets that start with lowercase, keep merging until a complete sentence
-    let merged = [];
-    let i = 0;
-    while (i < bullets.length) {
-      let b = bullets[i];
-      // Keep merging with next bullet if this is a fragment or next starts with lowercase
-      while (
-        i < bullets.length - 1 &&
-        (
-          b.split(' ').length < 5 ||
-          !/[.!?]$/.test(b) ||
-          (bullets[i + 1] && /^[a-z]/.test(bullets[i + 1]))
-        )
-      ) {
-        b = (b + ' ' + bullets[i + 1]).replace(/\s+/g, ' ').trim();
-        i++;
-      }
-      merged.push(b);
-      i++;
-    }
-    overallAdvice = merged.filter(b => b.length > 0);
+    overallAdvice = adviceText.split(/\n/)
+      .map(line => line.replace(/^[-\u2022]\s*/, '').trim())
+      .filter(line => line.length > 0); // Filter out empty lines
   }
   
   return {
