@@ -1,6 +1,8 @@
 "use client";
 import React, { useState } from 'react';
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
+import VoiceInput from '@/components/VoiceInput';
+import VoiceDemo from '@/components/VoiceDemo';
 
 const BACKEND_ANALYZE_URL = '/api/proxy_analyze_conversation';
 const BACKEND_GET_METRICS_URL = '/api/get_metrics';
@@ -48,12 +50,15 @@ function AnalyzerInterface({
   llmAdvice,
   isLoading,
   error,
+  isRecording,
+  setIsRecording,
   setIsTurnByTurn,
   setCurrentTurn,
   handleKeyDown,
   handleAnalyze,
   handleClear,
   handleExampleClick,
+  handleVoiceTranscript,
 }: {
   isTurnByTurn: boolean;
   conversation: { speaker: string; text: string }[];
@@ -64,12 +69,15 @@ function AnalyzerInterface({
   llmAdvice: string[] | null;
   isLoading: boolean;
   error: string | null;
+  isRecording: boolean;
+  setIsRecording: (recording: boolean) => void;
   setIsTurnByTurn: (value: boolean) => void;
   setCurrentTurn: (value: string) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   handleAnalyze: () => void;
   handleClear: () => void;
   handleExampleClick: (turns: string[]) => void;
+  handleVoiceTranscript: (text: string, speaker: string) => void;
 }) {
   return (
     <>
@@ -82,6 +90,7 @@ function AnalyzerInterface({
         </p>
       </div>
       <div className="w-full max-w-xl sm:max-w-4xl z-10">
+        {isTurnByTurn && <VoiceDemo />}
         <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-6 sm:p-8">
           <div className="flex items-center justify-center mb-4">
             <span className="mr-2 sm:mr-3 text-gray-400 text-sm sm:text-base">One-go</span>
@@ -89,7 +98,9 @@ function AnalyzerInterface({
               <input type="checkbox" checked={isTurnByTurn} onChange={() => setIsTurnByTurn(!isTurnByTurn)} className="sr-only peer" />
               <div className="w-9 h-5 sm:w-11 sm:h-6 bg-gray-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
-            <span className="ml-2 sm:ml-3 text-gray-400 text-sm sm:text-base">Turn-by-turn</span>
+            <span className="ml-2 sm:ml-3 text-gray-400 text-sm sm:text-base">
+              Turn-by-turn <span className="text-blue-400 text-xs">(🎤 Voice Input Available)</span>
+            </span>
           </div>
           {isTurnByTurn && conversation.length > 0 && (
             <div className="mb-4 max-h-40 sm:max-h-48 overflow-y-auto p-3 sm:p-4 bg-gray-900/50 rounded-lg text-sm sm:text-base">
@@ -98,13 +109,43 @@ function AnalyzerInterface({
               ))}
             </div>
           )}
-          <textarea
-            className="w-full h-32 sm:h-48 bg-gray-900/50 border border-gray-700/50 rounded-lg p-3 sm:p-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300 text-sm sm:text-base"
-            placeholder={isTurnByTurn ? `Enter ${currentSpeaker}'s turn... (Press Enter to submit)` : "Paste the full conversation here (e.g., 'Sales Rep: ...\nCustomer: ...')"}
-            value={currentTurn}
-            onChange={(e) => setCurrentTurn(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
+          
+          {/* Voice Input Section - Only for Turn-by-Turn Mode */}
+          {isTurnByTurn && (
+            <div className="mb-6">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-semibold text-white mb-2">🎤 Voice Input</h3>
+                <p className="text-sm text-gray-400">Record your conversation in real-time</p>
+              </div>
+              <VoiceInput
+                currentSpeaker={currentSpeaker}
+                onTranscript={handleVoiceTranscript}
+                isRecording={isRecording}
+                setIsRecording={setIsRecording}
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
+          {/* Text Input Section */}
+          <div className="mb-6">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                {isTurnByTurn ? "✍️ Text Input" : "✍️ Conversation Input"}
+              </h3>
+              <p className="text-sm text-gray-400">
+                {isTurnByTurn ? "Or type your conversation manually" : "Paste the full conversation here"}
+              </p>
+            </div>
+            <textarea
+              className="w-full h-32 sm:h-48 bg-gray-900/50 border border-gray-700/50 rounded-lg p-3 sm:p-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300 text-sm sm:text-base"
+              placeholder={isTurnByTurn ? `Enter ${currentSpeaker}'s turn... (Press Enter to submit)` : "Paste the full conversation here (e.g., 'Sales Rep: ...\nCustomer: ...')"}
+              value={currentTurn}
+              onChange={(e) => setCurrentTurn(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
+
           <div className="flex flex-col items-center mt-2 mb-2">
             <span className="text-gray-400 font-medium mb-1 text-xs">Examples:</span>
             <div className="flex flex-wrap gap-1 sm:gap-2 justify-center">
@@ -257,12 +298,21 @@ export default function AppPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [llmAdvice, setLlmAdvice] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
 
   const handleTurnSubmit = () => {
     if (!currentTurn.trim()) return;
     const newTurn = { speaker: currentSpeaker, text: currentTurn };
     setConversation([...conversation, newTurn]);
     setCurrentSpeaker(currentSpeaker === 'Sales Rep' ? 'Customer' : 'Sales Rep');
+    setCurrentTurn('');
+  };
+
+  const handleVoiceTranscript = (text: string, speaker: string) => {
+    if (!text.trim()) return;
+    const newTurn = { speaker, text: text.trim() };
+    setConversation([...conversation, newTurn]);
+    setCurrentSpeaker(speaker === 'Sales Rep' ? 'Customer' : 'Sales Rep');
     setCurrentTurn('');
   };
 
@@ -430,6 +480,7 @@ export default function AppPage() {
     setMetrics([]);
     setLlmAdvice(null);
     setError(null);
+    setIsRecording(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -475,12 +526,15 @@ export default function AppPage() {
           llmAdvice={llmAdvice}
           isLoading={isLoading}
           error={error}
+          isRecording={isRecording}
+          setIsRecording={setIsRecording}
           setIsTurnByTurn={setIsTurnByTurn}
           setCurrentTurn={setCurrentTurn}
           handleKeyDown={handleKeyDown}
           handleAnalyze={handleAnalyze}
           handleClear={handleClear}
           handleExampleClick={handleExampleClick}
+          handleVoiceTranscript={handleVoiceTranscript}
         />
       </SignedIn>
 

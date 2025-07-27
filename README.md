@@ -24,6 +24,7 @@ SalesDoc AI is a cutting-edge sales analytics and enablement platform that uses 
 - **Sentiment detection** and customer engagement scoring
 - **Turn-by-turn breakdown** of sales conversations
 - **Objection identification** and handling suggestions
+- **Voice input support** for live call transcription
 
 ### 💬 Intelligent Chat Assistant
 - **Sales AI chatbot** trained on sales best practices
@@ -65,12 +66,16 @@ Quantitatively compare different sales scripts and approaches to optimize your s
 ### ⚡ Real-time Assistance
 Get live guidance during sales calls with suggestions to re-engage customers and improve conversion rates.
 
+### 🎤 Voice Input & Live Transcription
+Record sales conversations in real-time with automatic speech-to-text conversion and speaker identification for seamless analysis.
+
 ## 🛠️ Technology Stack
 
 - **Frontend**: Next.js 14+ with TypeScript
 - **Styling**: Tailwind CSS with custom glassmorphism components
 - **Authentication**: Clerk with custom dark theme integration
 - **AI Integration**: Google Gemini AI for chat and conversation analysis
+- **Voice Recognition**: Native Web Speech API (webkitSpeechRecognition)
 - **Deployment**: Vercel-ready with environment configuration
 - **UI Components**: Custom-built with accessibility in mind
 
@@ -84,8 +89,9 @@ Get live guidance during sales calls with suggestions to re-engage customers and
 - Responsive call-to-action sections
 
 ### 🔍 Analyzer (`/app`)
-- **Turn-by-turn mode**: Add conversations incrementally
+- **Turn-by-turn mode**: Add conversations incrementally with voice input support
 - **Bulk analysis mode**: Paste entire conversations
+- **Voice input**: Real-time speech-to-text transcription (turn-by-turn only)
 - **Example conversations**: Pre-loaded scenarios
 - **Detailed metrics**: Sentiment, engagement, effectiveness scores
 - **AI suggestions**: Actionable improvement recommendations
