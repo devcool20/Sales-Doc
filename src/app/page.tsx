@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { SquareStack, Sparkles, Zap } from 'lucide-react'; // Importing icons
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
+import { AuroraBackground } from '@/components/ui/aurora-background';
 
 // --- Utility Component for Scroll-based Fade In ---
 // This component applies the fade-in animation as sections come into view.
@@ -58,13 +59,15 @@ export default function HomePage() {
 
   return (
     <div className="bg-[#0a0a0a] min-h-screen text-gray-200">
-      {/* Hero Section */}
-      <section id="hero-section" className="min-h-screen flex flex-col items-center justify-center text-center bg-black py-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 animate-fade-in-up">Boost Your Sales.</h1>
-        <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-400 mb-8 sm:mb-10 animate-fade-in-up-delay-200">Smarter conversions start here.</p>
-        <Link href="/app" className="btn-premium animate-pop-in">Get Started</Link>
-        <div className="gradient-line pulsate-gradient"></div>
-      </section>
+      {/* Hero Section with Aurora Background */}
+      <AuroraBackground className="bg-black text-white">
+        <div className="relative z-10 flex flex-col items-center justify-center text-center py-16 px-4 sm:px-6 lg:px-8 pt-24 sm:pt-32">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 animate-fade-in-up">Boost Your Sales.</h1>
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-400 mb-8 sm:mb-10 animate-fade-in-up-delay-200">Smarter conversions start here.</p>
+          <Link href="/app" className="btn-premium animate-pop-in">Get Started</Link>
+          <div className="gradient-line pulsate-gradient"></div>
+        </div>
+      </AuroraBackground>
 
       {/* Features Section */}
       <FadeInSection id="features-section" className="bg-black">

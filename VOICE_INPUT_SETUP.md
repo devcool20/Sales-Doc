@@ -6,12 +6,27 @@ This guide explains how to use the new voice input functionality in the Sales AI
 
 The voice input feature allows sales representatives to:
 - **Record live conversations** during sales calls (Turn-by-turn mode only)
+- **Ask questions to Sales AI** using voice input (AI Chat mode)
 - **Convert speech to text** in real-time
 - **Automatically identify speakers** (Sales Rep vs Customer)
 - **Seamlessly integrate** with existing analysis workflow
 - **Switch speakers automatically** after each turn
+- **Get instant AI responses** to voice questions
 
 ## 🚀 How to Use Voice Input
+
+### Voice Input for Sales AI Chat
+1. Navigate to the **AI Chat** page (`/ai-chat`)
+2. Click the **"Voice Input"** button above the text input
+3. Speak your question clearly into your microphone
+4. Click **"Stop Recording"** when finished
+5. Click **"Send Question"** to get AI response
+6. Receive detailed text response from Sales AI
+
+### Voice Input for Conversation Analysis
+1. Navigate to the **Sales AI Analyzer** page (`/app`)
+2. **Switch to "Turn-by-turn" mode** using the toggle switch
+3. The voice input section will appear with recording controls
 
 ### 1. Browser Requirements
 - **Chrome/Edge**: Full support with best performance
@@ -26,15 +41,19 @@ The voice input feature allows sales representatives to:
 
 ### 3. Recording Process
 
-#### Enable Voice Input
+#### For AI Chat
+1. Navigate to the **AI Chat** page (`/ai-chat`)
+2. Click the **"Voice Input"** button
+3. Speak your question clearly into your microphone
+4. Click **"Stop Recording"** when finished
+5. Click **"Send Question"** to submit
+
+#### For Conversation Analysis
 1. Navigate to the **Sales AI Analyzer** page (`/app`)
 2. **Switch to "Turn-by-turn" mode** using the toggle switch
-3. The voice input section will appear with recording controls
-
-#### Start Recording
-1. Click the **"Start Recording"** button (green microphone icon)
-2. The current speaker will be displayed (Sales Rep or Customer)
-3. Begin speaking clearly into your microphone
+3. Click the **"Start Recording"** button (green microphone icon)
+4. The current speaker will be displayed (Sales Rep or Customer)
+5. Begin speaking clearly into your microphone
 
 #### During Recording
 - **Live transcript** appears in real-time
@@ -60,6 +79,13 @@ The voice input feature allows sales representatives to:
 - **Submit**: Add transcript to conversation analysis
 
 ## 🎯 Use Cases
+
+### AI Sales Coaching
+1. **Navigate to AI Chat** page (`/ai-chat`)
+2. **Use voice input** to ask sales questions
+3. **Get instant responses** from Sales AI
+4. **Receive actionable advice** and strategies
+5. **Perfect for hands-free coaching**
 
 ### Live Sales Calls
 1. **Enable turn-by-turn mode** and voice input

@@ -98,6 +98,7 @@ Record sales conversations in real-time with automatic speech-to-text conversion
 
 ### 💬 AI Chat (`/ai-chat`)
 - **Gemini AI-powered** sales assistant
+- **Voice input support** for hands-free questions
 - Real-time chat with expert sales advice
 - Conversation history with message threading
 - Sales-focused responses and strategies

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
 import VoiceInput from '@/components/VoiceInput';
 import VoiceDemo from '@/components/VoiceDemo';
@@ -51,6 +51,7 @@ function AnalyzerInterface({
   isLoading,
   error,
   isRecording,
+  countdown,
   setIsRecording,
   setIsTurnByTurn,
   setCurrentTurn,
@@ -70,6 +71,7 @@ function AnalyzerInterface({
   isLoading: boolean;
   error: string | null;
   isRecording: boolean;
+  countdown: number;
   setIsRecording: (recording: boolean) => void;
   setIsTurnByTurn: (value: boolean) => void;
   setCurrentTurn: (value: string) => void;
@@ -81,25 +83,25 @@ function AnalyzerInterface({
 }) {
   return (
     <>
-      <div className="text-center mb-8 sm:mb-12 z-10">
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-2 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
+      <div className="text-center mb-6 sm:mb-8 md:mb-12 z-10 px-4 mt-8 sm:mt-12">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold tracking-tight mb-2 sm:mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-500">
           Sales AI Analyzer
         </h1>
-        <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
+        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-400 max-w-2xl mx-auto">
           Unlock insights from your sales calls. Input your conversations and let our AI provide you with actionable intelligence.
         </p>
       </div>
-      <div className="w-full max-w-xl sm:max-w-4xl z-10">
+      <div className="w-full max-w-xl sm:max-w-4xl z-10 px-2 sm:px-0">
         {isTurnByTurn && <VoiceDemo />}
-        <div className="bg-white/5 border border-white/10 rounded-2xl shadow-lg backdrop-blur-xl p-6 sm:p-8">
+        <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl shadow-lg backdrop-blur-xl p-4 sm:p-6 md:p-8">
           <div className="flex items-center justify-center mb-4">
-            <span className="mr-2 sm:mr-3 text-gray-400 text-sm sm:text-base">One-go</span>
+            <span className="mr-2 sm:mr-3 text-gray-400 text-xs sm:text-sm md:text-base">One-go</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={isTurnByTurn} onChange={() => setIsTurnByTurn(!isTurnByTurn)} className="sr-only peer" />
-              <div className="w-9 h-5 sm:w-11 sm:h-6 bg-gray-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 sm:after:h-5 sm:after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-8 h-4 sm:w-9 sm:h-5 md:w-11 md:h-6 bg-gray-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 sm:after:h-4 sm:after:w-4 md:after:h-5 md:after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
-            <span className="ml-2 sm:ml-3 text-gray-400 text-sm sm:text-base">
-              Turn-by-turn <span className="text-blue-400 text-xs">(🎤 Voice Input Available)</span>
+            <span className="ml-2 sm:ml-3 text-gray-400 text-xs sm:text-sm md:text-base">
+              Turn-by-turn <span className="text-blue-400 text-xs hidden sm:inline">(🎤 Voice Input Available)</span>
             </span>
           </div>
           {isTurnByTurn && conversation.length > 0 && (
@@ -177,6 +179,30 @@ function AnalyzerInterface({
               Clear
             </button>
           </div>
+          
+          {/* Loading State with Countdown */}
+          {isLoading && (
+            <div className="text-center mt-6 sm:mt-8">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-6 sm:p-8 backdrop-blur-xl">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-white">Analyzing your conversation...</h3>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-300 mb-2">Please wait while our AI processes your data</p>
+                  <div className="text-3xl sm:text-4xl font-bold text-blue-400 mb-2">{countdown}s</div>
+                  <p className="text-sm text-gray-400">Results will be ready in {countdown} seconds</p>
+                </div>
+                <div className="mt-4 w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-1000"
+                    style={{ width: `${((10 - countdown) / 10) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {error && <div className="text-center text-red-400 mt-3 sm:mt-4 text-sm sm:text-base">{error}</div>}
         </div>
       </div>
@@ -299,6 +325,20 @@ export default function AppPage() {
   const [llmAdvice, setLlmAdvice] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [countdown, setCountdown] = useState(10);
+
+  // Countdown timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading && countdown > 0) {
+      interval = setInterval(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isLoading, countdown]);
 
   const handleTurnSubmit = () => {
     if (!currentTurn.trim()) return;
@@ -320,6 +360,7 @@ export default function AppPage() {
     setIsLoading(true);
     setError(null);
     setLlmAdvice(null);
+    setCountdown(10); // Reset countdown to 10 seconds
     let conversationToAnalyze: { speaker: string; text: string }[] = [];
     if (isTurnByTurn) {
       conversationToAnalyze = [...conversation];
@@ -345,6 +386,9 @@ export default function AppPage() {
       return;
     }
     try {
+      // Wait for 10 seconds before making API calls
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      
       // Prepare payloads for each endpoint
       const conversationStrings = conversationToAnalyze.map(turn => `${turn.speaker}: ${turn.text}`);
       // Fetch analysis and metrics in parallel
@@ -507,7 +551,7 @@ export default function AppPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex flex-col items-center justify-start p-4 sm:p-6 lg:p-8 mt-16 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex flex-col items-center justify-start p-2 sm:p-4 md:p-6 lg:p-8 pt-24 sm:pt-20 md:pt-24 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
@@ -527,6 +571,7 @@ export default function AppPage() {
           isLoading={isLoading}
           error={error}
           isRecording={isRecording}
+          countdown={countdown}
           setIsRecording={setIsRecording}
           setIsTurnByTurn={setIsTurnByTurn}
           setCurrentTurn={setCurrentTurn}

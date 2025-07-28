@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ClerkProvider, SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/nextjs';
+import MobileSidebar from '../components/MobileSidebar';
 import './globals.css'; // Import global styles
 
 // Define Navbar component with authentication
@@ -13,56 +14,62 @@ const Navbar: React.FC = () => {
     { href: '/ai-chat', label: 'AI Chat' },
   ];
   return (
-    <nav className="bg-black p-4 fixed w-full z-50 shadow-lg border-b border-blue-500/50">
-      <div className="container mx-auto flex items-center justify-between px-4">
-        {/* Logo */}
-        <div className="flex-1 flex items-center">
-          <Link href="/" className="text-2xl font-bold text-white tracking-wider">
+    <nav className="bg-black/95 backdrop-blur-xl p-3 sm:p-4 fixed w-full z-50 shadow-lg border-b border-blue-500/50">
+      <div className="container mx-auto flex items-center justify-between px-2 sm:px-4">
+        {/* Logo and Mobile Sidebar */}
+        <div className="flex items-center">
+          {/* Mobile Sidebar Button - Positioned to the left */}
+          <div className="mr-3 sm:hidden">
+            <MobileSidebar />
+          </div>
+          
+          <Link href="/" className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-wider -ml-2 sm:-ml-4">
             SALES<span className="text-pink-500">DOC</span>
           </Link>
         </div>
-        {/* Nav Links Centered */}
-        <div className="flex-1 flex justify-center">
-          <div className="flex gap-6">
+        
+        {/* Nav Links - Hidden on mobile, shown on tablet+ */}
+        <div className="hidden sm:flex flex-1 justify-center">
+          <div className="flex gap-4 md:gap-6 -ml-8 sm:-ml-12 md:-ml-16">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`relative px-2 py-1 text-base font-medium transition-colors duration-200
+                className={`relative px-2 py-1 text-sm md:text-base font-medium transition-colors duration-200 whitespace-nowrap
                   ${pathname === link.href
                     ? 'text-white after:absolute after:left-0 after:-bottom-1 after:w-full after:h-0.5 after:bg-gradient-to-r after:from-blue-500 after:to-pink-500 after:rounded-full'
                     : 'text-gray-300 hover:text-white hover:after:absolute hover:after:left-0 hover:after:-bottom-1 hover:after:w-full hover:after:h-0.5 hover:after:bg-gradient-to-r hover:after:from-blue-500 hover:after:to-pink-500 hover:after:rounded-full'}
                 `}
-                style={{ minWidth: 70, textAlign: 'center' }}
               >
                 {link.label}
               </Link>
             ))}
           </div>
         </div>
+        
         {/* User/Auth Button Right */}
-        <div className="flex-1 flex justify-end items-center">
-        <SignedIn>
-          <UserButton 
-            appearance={{
-              elements: {
-                avatarBox: "h-10 w-10",
-                userButtonPopoverCard: "bg-gray-900 border border-gray-700",
-                userButtonPopoverActionButton: "text-white hover:bg-gray-800",
-                userButtonPopoverActionButtonText: "text-white",
-                userButtonPopoverFooter: "hidden"
-              }
-            }}
-            afterSignOutUrl="/"
-          />
-        </SignedIn>
-        <SignedOut>
-          <SignInButton>
-              <button className="px-6 py-2 bg-white/5 border border-white/10 backdrop-blur-xl text-white hover:bg-white/10 hover:border-white/20 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg font-medium">
-              Sign In
-            </button>
-          </SignInButton>
-        </SignedOut>
+        <div className="flex items-center">
+          <SignedIn>
+            <UserButton 
+              appearance={{
+                elements: {
+                  avatarBox: "h-8 w-8 sm:h-10 sm:w-10",
+                  userButtonPopoverCard: "bg-gray-900 border border-gray-700",
+                  userButtonPopoverActionButton: "text-white hover:bg-gray-800",
+                  userButtonPopoverActionButtonText: "text-white",
+                  userButtonPopoverFooter: "hidden"
+                }
+              }}
+              afterSignOutUrl="/"
+            />
+          </SignedIn>
+          <SignedOut>
+            <SignInButton>
+              <button className="px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 bg-white/5 border border-white/10 backdrop-blur-xl text-white hover:bg-white/10 hover:border-white/20 rounded-lg sm:rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg font-medium text-xs sm:text-sm">
+                Sign In
+              </button>
+            </SignInButton>
+          </SignedOut>
         </div>
       </div>
     </nav>
